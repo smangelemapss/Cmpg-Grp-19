@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class AdminReportingConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.admin_reporting"
+    verbose_name = "Admin & reporting"

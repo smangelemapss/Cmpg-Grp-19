@@ -1,4 +1,4 @@
-# Ubuntu Campus Clinic — Appointment System
+# Ubuntu Campus Clinic — Appointment System.
 ## Complete System Design Blueprint
 
 > **Group 19 · CMPG 311 · DBMS Module · Phase 3**

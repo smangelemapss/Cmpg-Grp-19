@@ -1,69 +1,90 @@
-# Contributing to CBS — Clinic Booking System
+# Contributing to Ubuntu Campus Clinic — Appointment System
 
-Welcome to the team! 🎉
+Welcome to the team. 🎉
 
-CBS is a CMPG 311 DBMS module project. Our goal is to build a production-grade Clinic Appointment System while mastering real-world software engineering practices — git workflows, code reviews, database design, and API development.
+This is a CMPG 311 DBMS module project. The goal is to build a production-grade Clinic Appointment System while practising real-world software engineering — git workflows, database design, code reviews, and API development.
 
-We want this to be a place where you can learn, make mistakes safely, and grow. To keep our codebase clean and our collaboration smooth, please follow the guidelines below.
-
----
-
-## 🚀 The Golden Rules
-
-1. **Be Kind:** We are all learning. Constructive feedback is a gift — give it respectfully and receive it gracefully.
-2. **The Database is Sacred:** Our primary exam deliverable is the PostgreSQL schema. No column renames, table renames, or structural changes without telling S1 (DB Lead) first.
-3. **Code is Read More Than Written:** Write clean, self-documenting code. If you need a comment to explain _what_ the code does, simplify the code first.
-4. **Leave It Better Than You Found It:** If you spot a typo or messy formatting in a file you are already touching, fix it.
+Read this document once before writing any code. Reference it whenever you are unsure about a process.
 
 ---
 
-## 🛠 Workflow & Branching
+## The Golden Rules
 
-We follow a strict **Feature Branch Workflow**. We never push directly to `main` or `dev`.
+1. **The database is sacred.** The PostgreSQL schema is the primary exam deliverable. No column renames, table renames, or structural changes without S1's written sign-off first.
+2. **Be kind.** Constructive feedback is a gift — give it respectfully and receive it gracefully. Everyone is learning.
+3. **Code is read more than written.** Write clean, self-documenting code. If a comment is needed to explain what the code does, simplify the code instead.
+4. **One concern per branch.** A branch that mixes two modules makes review impossible and rollback destructive.
 
-### Branch Structure
+---
 
-- **`main`** — Production-ready code only. Receives merges from `dev` at the end of the sprint. Do not touch.
-- **`dev`** — Integration branch. **All Pull Requests target `dev`.** This is where the team's work comes together.
-- **`feat/your-branch`** — Your working branch. One branch per module or concern.
+## Branch Model
 
-### Branch Naming Convention
+Three types of branches. Never work directly on `main` or `dev`.
 
-```
-type/short-description
-```
-
-| Prefix | Use For | Example |
+| Branch | Purpose | Who Touches It |
 |---|---|---|
-| `feat/` | New module or feature | `feat/patients` |
-| `fix/` | Bug fix | `fix/appointment-double-booking` |
-| `db/` | Migration or schema change | `db/add-queue-index` |
-| `docs/` | Documentation changes | `docs/update-readme` |
-| `chore/` | Maintenance, dependency updates | `chore/update-requirements` |
-| `refactor/` | Code restructure, no feature change | `refactor/patient-serializer` |
-
-> **One module per branch. Never mix concerns.** A branch that touches both patients and appointments makes review and rollback impossible.
+| `main` | Production-ready only · examiner accesses live URL from here | S1 merges `dev` into `main` at sprint end |
+| `dev` | Integration branch · all PRs target here | Everyone via PR only |
+| `feature/your-branch` | Your working branch · one per module or concern | The person who owns that module |
 
 ---
 
-## 📝 Commits
+## Branch Naming Convention
 
-We follow **Conventional Commits**. This keeps history readable, helps the team debug, and makes the examiner's git log review impressive.
+The team uses the following agreed naming structure. Every branch name starts with `feature/` followed by the role code and a short description.
 
-**Format:** `type(scope): description`
+**Backend branches:**
 
-The scope should be the table name or module name — keep it specific.
+| Branch | Owner | Purpose |
+|---|---|---|
+| `feature/b1-auth-api` | B1 | Auth endpoints · JWT · permissions · Django admin |
+| `feature/b2-patient-api` | B2 | Patient CRUD · contacts · medical records · timeslots |
+| `feature/b3-doctor-api` | B3 | Appointments · QR · queue · notifications logic |
+| `feature/b4-integration` | B4 | Audit log · raw SQL reports · pytest suite |
 
-**Examples:**
+**Frontend branches:**
+
+| Branch | Owner | Purpose |
+|---|---|---|
+| `feature/f1-design-system` | F1 | App shell · AuthContext · shared components · routing |
+| `feature/f2-patient-module` | F2 | Patient profile · medical history · appointment list |
+| `feature/f3-doctor-module` | F3 | Doctor dashboard · Big Calendar · booking form · queue board |
+| `feature/f4-appointment-booking` | F4 | Reports dashboard · audit log · notifications panel |
+
+**S1 branches:**
+
+| Branch | Owner | Purpose |
+|---|---|---|
+| `feature/s1-scaffold` | S1 | Django project setup · all 12 models · initial migrations |
+| `feature/s1-seed-data` | S1 | `seed_db` management command · all 12 tables |
+| `feature/s1-ci-pipeline` | S1 | GitHub Actions CI · pytest on every PR |
+| `feature/s1-deployment` | S1 | Render.com config · env vars · CORS · static files |
+| `feature/s1-notifications` | S1 | NOTIFICATION model · email backend |
+
+**Additional branches for fixes and maintenance:**
+
+```
+fix/short-description          → bug fix on any module
+db/short-description           → migration or schema fix
+docs/short-description         → documentation update
+chore/short-description        → dependency or config update
+```
+
+---
+
+## Commits
+
+Follow **Conventional Commits**. The format is `type(scope): description`. Scope is the table name or role code. Keep the description lowercase and imperative.
 
 ```bash
 # ✅ Correct
-feat(patients): add Patient model and initial migration
-feat(auth): add JWT login and register endpoints
-fix(appointments): resolve UNIQUE constraint on slot_id
-db(queue): add index on check_in_time column
-docs(readme): add API endpoints table
-test(patients): add PatientSerializer unit tests
+feat(b1): add JWT login and register endpoints
+feat(b2): add Patient model and CRUD serializer
+feat(s1): write all 12 models and run initial migrations
+fix(b3): resolve UNIQUE constraint error on slot_id booking
+test(b4): add audit log middleware unit tests
+db(s1): add composite index on TIMESLOT slot_date and is_available
+docs(readme): update live URL after Render deployment
 chore(deps): pin psycopg2-binary to 2.9.9
 
 # ❌ Wrong
@@ -73,73 +94,63 @@ git commit -m "wip"
 git commit -m "changes"
 ```
 
-**Commit as you go.** One commit per meaningful unit of work — not one giant commit at the end of the sprint. The examiner reads git history. Sparse commits look like one person did everything.
+Commit after every meaningful unit of work — model written, serializer written, view written, test written. The examiner reads git history. Sparse commits look like one person did everything.
 
 ---
 
-## 🗄 Database & Migration Rules
+## Database & Migration Rules
 
-These rules exist because migration conflicts are the single biggest risk in a 9-person Django project.
+Migration conflicts are the highest-risk failure point in a 9-person Django project. These rules prevent them.
 
-### Before Running `makemigrations`
+**Before anyone runs `makemigrations`:**
 
-1. Post in the group chat: _"About to makemigrations for \[app name\] — anyone else busy with that app?"_
-2. Wait for S1 to confirm no conflicts.
-3. Run `python manage.py makemigrations <app_name>`.
-4. Do **not** commit the migration file until S1 has reviewed it.
+1. Post in the group chat with the exact app name and what is changing
+2. Wait for S1 to confirm no conflicts with open branches
+3. Run `python manage.py makemigrations <app_name>` only after S1 confirms
+4. Do not commit the migration file until S1 has reviewed it in the PR
 
-### The Migration Review Rule
+**S1 must be tagged as a reviewer on every PR that contains a migration file.** This is non-negotiable.
 
-**Every migration file must be reviewed by S1 before it is committed to `dev`.**
-
-Tag S1 as a reviewer on any PR that includes a file matching `*/migrations/*.py`. This is non-negotiable — a bad migration that gets merged can break `python manage.py migrate` for everyone on the team.
-
-### Schema Is Locked
-
-The 12 tables from Phase 2 are the agreed schema. Do not:
-- Rename a column
-- Add a new table
-- Change a field type
-- Add or remove a FK constraint
-
-...without posting in the group chat first and getting S1's written sign-off. Everyone's foreign keys depend on these exact names.
+**Schema is locked.** The 12 tables from Phase 2 are agreed. Do not rename a column, change a field type, add a table, or remove a FK constraint without S1's approval. Every other module's FK depends on these exact names.
 
 ---
 
-## 📝 Pull Requests (PRs)
+## Pull Requests
 
-The PR is where learning happens. Take it seriously.
-
-### Step 1 — Self-Review First
-
-Before opening a PR, review your own code as if you are a stranger reading it. Check for:
-
-- No `print()` or `console.log` statements left behind
-- No commented-out code blocks
-- No unused imports
-- All error cases return proper HTTP status codes (not just 200)
-- Serializer used for all API responses — no raw `model.__dict__` returns
-- Migration files reviewed by S1
-
-### Step 2 — PR Description
-
-Every field is required. A vague PR description signals you did not review your own work.
+### Before Opening a PR — Self-Review Checklist
 
 ```
-Title:      feat(patients): add Patient model, serializer, and CRUD API
+[ ] Branch named correctly per the convention above
+[ ] Conventional commit messages throughout
+[ ] No print() or console.log statements left in code
+[ ] No commented-out code blocks
+[ ] No unused imports
+[ ] Serializer used for all API responses — no raw model.__dict__
+[ ] JWT permission class applied on all protected views
+[ ] If migration file present — S1 has reviewed and approved it
+[ ] Tests written and passing locally
+[ ] PR description filled out completely
+[ ] Minimum 2 reviewers assigned
+[ ] Linked to the GitHub issue
+```
+
+### PR Description Template
+
+```
+Title: feat(b2): add Patient model, serializer, and CRUD endpoints
 
 What changed:
   Added Patient model, PatientContact model, PatientSerializer,
   PatientViewSet, URL routing, and 2 migration files.
 
 Why it changed:
-  Implements Module 2 spec — patients need to register and manage profiles.
+  Implements B2 spec — patients need to register and manage profiles.
 
 How to test:
   1. python manage.py migrate
-  2. POST /api/patients/ with { "student_number": "43224105", ... }
-  3. GET /api/patients/ — verify list returns
-  4. Check PATIENT table in psql: SELECT * FROM "PATIENT";
+  2. POST /api/v1/patients/ with valid patient data → expect 201
+  3. GET /api/v1/patients/ with admin JWT → expect list
+  4. SELECT * FROM "PATIENT"; in psql to verify DB record
 
 Migration impact:
   Creates PATIENT and PATIENT_CONTACT tables.
@@ -148,160 +159,123 @@ Migration impact:
 Linked issue: Closes #2
 ```
 
-### Step 3 — The Rule of Two
+### The Rule of Two
 
-A PR requires **2 approvals** to merge into `dev`:
-
+Every PR requires 2 approvals before merging:
 - 1 peer approval (any teammate)
-- 1 S1 approval (required if migration files are present)
+- 1 S1 approval (mandatory when migration files are present)
 
-No exceptions. No deadline pressure overrides this.
+No deadline pressure overrides this.
 
-### Step 4 — Squash and Merge
+### Merge Method
 
-When merging, always choose **Squash and merge** on GitHub. This keeps the `dev` branch history clean — one meaningful commit per feature, not forty "wip" commits.
-
-Edit the squash message to be a clean conventional commit.
-
-### After Merge
-
-1. Delete your branch on GitHub (GitHub will prompt you).
-2. `git checkout dev && git pull origin dev` locally.
-3. `git branch -d feat/your-branch` to remove the local copy.
-4. Post a brief update in the group chat: what shipped, any follow-up needed.
+Always use **Squash and merge** on GitHub. This keeps `dev` history clean — one meaningful commit per feature. Edit the squash message to be a clean conventional commit before confirming.
 
 ---
 
-## 🎨 Coding Standards
+## Coding Standards
 
 ### Backend — Django / Python
 
-**Serializers are mandatory.**
+**Serializers are mandatory for every API response.**
 
 ```python
-# ❌ Wrong — raw data, no validation
+# ❌ Wrong
 return Response(patient.__dict__)
 
-# ✅ Correct — through serializer
+# ✅ Correct
 serializer = PatientSerializer(patient)
 return Response(serializer.data)
 ```
 
-**ORM for CRUD, Raw SQL for reports only.**
+**ORM for CRUD. Raw SQL only in `admin_reporting/queries.py`.**
 
 ```python
-# ✅ ORM — use for all standard queries
+# ✅ ORM — all standard queries
 Patient.objects.filter(consent_given=True)
 
-# ✅ Raw SQL — only in Module 6 reporting endpoints
+# ✅ Raw SQL — reporting endpoints only
 from django.db import connection
 with connection.cursor() as cursor:
     cursor.execute("SELECT slot_date, COUNT(*) FROM ...")
 ```
 
-**Model `Meta` table names must match the ERD exactly.**
+**`db_table` Meta must match the ERD exactly.**
 
 ```python
 class Patient(models.Model):
     class Meta:
-        db_table = "PATIENT"   # Must match Phase 2 ERD — no changes
+        db_table = "PATIENT"  # matches Phase 2 ERD — never change this
 ```
 
-**Permissions on every view.**
+**Permission class on every view.**
 
 ```python
 class PatientViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]  # Never leave this off
+    permission_classes = [IsAuthenticated]  # never leave this off
 ```
-
-**No business logic in views.** Views call serializers and return responses. Logic lives in model methods or service functions.
 
 ### Frontend — React
 
-**The Adapter Rule: React never calls the database.**
+**The Adapter Rule: React never calls the database directly.**
 
 ```javascript
-// ❌ Wrong — calling backend directly in a component
-const res = await fetch('http://localhost:8000/api/patients/');
+// ❌ Wrong — axios or fetch called directly in a component
+const res = await fetch('http://localhost:8000/api/v1/patients/');
 
 // ✅ Correct — through a service function
-import { getPatients } from '../services/patientsService';
+import { getPatients } from '../services/patientService';
 const patients = await getPatients();
 ```
 
-All API calls live in `src/services/`. Components import service functions, not axios directly.
-
-**No hardcoded API URLs in components.** Use the base URL from a config or environment variable.
+All API calls live in `src/services/`. No component imports axios directly. No hardcoded API URLs inside components.
 
 ---
 
-## 🏗 Architecture: The Three-Layer Rule
+## The Four-Layer Rule
 
-Every data request in CBS follows this exact path — no shortcuts:
+Every data request follows this exact path. No shortcuts. Violating a layer boundary is an automatic PR rejection reason.
 
 ```
 React Component
-      ↓  (calls service function)
+      ↓  calls service function
 src/services/*.js
-      ↓  (axios → /api/ endpoint)
-Django View + Serializer
-      ↓  (ORM or raw SQL)
-PostgreSQL
+      ↓  axios → /api/v1/ endpoint
+Django View + Serializer  (Application Layer)
+      ↓  ORM method call
+Django ORM  (Data Access Layer)
+      ↓  SQL
+PostgreSQL  (Database Layer)
 ```
-
-Violating any layer boundary is a PR rejection reason.
 
 ---
 
-## 🐞 Reporting Bugs
+## The Proposal Process
 
-Found a bug? Open a GitHub Issue. Include:
+If a change affects more than one module — a new shared FK, a change to the JWT payload, a new shared endpoint — post a proposal before coding.
 
-- Steps to reproduce (exact commands or clicks)
+1. Post in the group chat with the `[PROPOSAL]` tag
+2. Describe what is changing, which tables or modules it affects, and the migration impact
+3. Wait 24 hours for feedback
+4. Get S1's written sign-off on any schema-touching change
+5. Then code
+
+Skipping the proposal process on cross-module changes is an automatic PR rejection.
+
+---
+
+## Bug Reports
+
+Open a GitHub Issue and include:
+
+- Steps to reproduce
 - Expected behaviour
 - Actual behaviour
-- Error message or traceback (paste the full thing)
-- Which module/table is affected
+- Full error message or traceback
+- Which module and table is affected
 
-Vague bug reports waste debugging time. _"It doesn't work"_ is not a bug report.
-
----
-
-## 🧠 The Proposal Process
-
-If your module requires a design decision that affects other modules — for example, a new shared FK, a change to how JWT payload is structured, or a new shared endpoint — do not just start coding.
-
-1. **Post in the group chat** with the `[PROPOSAL]` tag.
-2. **Describe your approach briefly:**
-   - What are you changing or adding?
-   - Which tables or modules does it affect?
-   - What is the migration impact?
-3. **Wait for feedback** — minimum 24 hours.
-4. **Get S1's sign-off** on any schema-touching proposals.
-5. **Then code.**
-
-Skipping the proposal process on cross-module changes = automatic PR rejection.
+*"It doesn't work"* is not a bug report.
 
 ---
 
-## 📋 Quick Reference Checklist
-
-Before opening any PR, run through this list:
-
-```
-[ ] Branch named correctly (feat/, fix/, db/, etc.)
-[ ] Conventional commit messages throughout the branch
-[ ] No direct push to dev or main
-[ ] No print() or console.log left in code
-[ ] No commented-out blocks
-[ ] Serializer used for all API responses
-[ ] JWT permission applied on all protected views
-[ ] If migration present — S1 has reviewed the file
-[ ] PR description filled out completely (what, why, how to test)
-[ ] Minimum 2 reviewers assigned
-[ ] Linked to the GitHub issue
-```
-
----
-
-**Happy coding. Ship clean code. Keep the database intact.** 🚀
+**Ship clean code. Keep the database intact. Review each other's work.** 🚀

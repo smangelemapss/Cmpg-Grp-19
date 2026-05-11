@@ -1,68 +1,72 @@
-# 🏥 CBS — Clinic Booking System
+# 🏥 Ubuntu Campus Clinic — Appointment System
 
-> **Group 19 · CMPG 311 · DBMS Module · Phase 3**
-> **Current Status:** Phase 3 — Active Implementation Sprint (4 May – 18 May 2025)
->
-> We are building a full-stack Clinic Appointment System for Ubuntu Campus Clinic. The primary exam deliverable is the **PostgreSQL database** — schema design, migrations, data integrity, and raw SQL queries. The Django REST API and React frontend exist to demonstrate the database working end-to-end.
+<div align="center">
 
-CBS (Clinic Booking System) is a web application that replaces the manual paper-based appointment system at Ubuntu Campus Clinic, enabling students to book appointments online, manage their medical records, and receive automated notifications.
+![Status](https://img.shields.io/badge/Status-Active%20Development-teal?style=for-the-badge)
+![Phase](https://img.shields.io/badge/Phase-3%20Implementation-0D1B2A?style=for-the-badge)
+![DB](https://img.shields.io/badge/Database-PostgreSQL%2015-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Backend](https://img.shields.io/badge/Backend-Django%205.0-092E20?style=for-the-badge&logo=django&logoColor=white)
+![Frontend](https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+
+**Group 19 · CMPG 311 · DBMS Module · Phase 3**
+
+*Replacing manual paper-based clinic scheduling with a production-grade digital system —
+built database-first, designed to scale.*
+
+[Getting Started](#-getting-started) · [Architecture](#-architecture) · [Database Schema](#-database-schema) · [API Reference](#-api-reference) · [Team](#-team) · [Docs](#-documentation)
+
+</div>
+
+---
+
+## What Is This?
+
+Ubuntu Campus Clinic runs on paper. Students wait days for appointments. Records get lost. Staff have no visibility into capacity or performance. After hours — the system stops entirely.
+
+This changes that.
+
+The **Ubuntu Campus Clinic Appointment System** is a full-stack web application that digitizes the complete patient lifecycle — registration, booking, queue management, consultation, medical records, and automated notifications — in one centralized platform accessible 24/7 from any browser.
+
+> **The primary exam deliverable is the PostgreSQL database** — schema design, migration architecture, data integrity enforcement, and raw SQL reporting. The Django REST API and React 18 frontend exist to demonstrate the database working end-to-end as a complete, live system.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer | Technology | Purpose |
+| Layer | Technology | Why We Chose It |
 |---|---|---|
-| **Database** | PostgreSQL 15 | Primary exam deliverable — all 12 ERD tables |
-| **Backend** | Django 5.0 + Django REST Framework | API, ORM, migrations, admin panel |
-| **Auth** | JWT (SimpleJWT) | Stateless login via `USER_ACCOUNT` table |
-| **Frontend** | React 18 + Tailwind CSS | UI — connects to API via axios |
-| **Testing** | pytest + pytest-django | Unit tests per module |
-| **Deployment** | Render.com | Live URL for examiner |
-| **CI** | GitHub Actions | Runs pytest on every PR to `dev` |
+| **Database** | PostgreSQL 15 | ACID compliance · FK enforcement · production-grade · primary exam deliverable |
+| **Backend** | Django 5.0 + Django REST Framework | Built-in ORM · admin panel · migrations · serializers |
+| **Auth** | JWT via SimpleJWT | Stateless · role encoded in payload · scales horizontally |
+| **Frontend** | React 18 + Tailwind CSS | Component-based · responsive · browser + mobile |
+| **Testing** | pytest + pytest-django | Clean syntax · shared fixtures · CI integration |
+| **Deployment** | Render.com | Free tier · one dashboard · auto-deploy from GitHub |
+| **CI** | GitHub Actions | Full pytest suite on every PR to `dev` — broken code never merges |
 
 ---
 
 ## ⚙️ Prerequisites
 
-Before you start, make sure you have:
-
-1. **Python 3.11+** — [Download](https://www.python.org/downloads/)
-2. **Node.js 18+** — [Download](https://nodejs.org/)
-3. **PostgreSQL 15** — [Download](https://www.postgresql.org/download/)
-4. **Git** — [Download](https://git-scm.com/)
-
----
-
-## 🗄 Database Schema
-
-The schema was finalised in Phase 2. **These 12 tables are locked — do not rename columns or restructure without telling the DB Lead (S1) first.**
-
-| Table | Module Owner | Key Relationships |
+| Tool | Version | Download |
 |---|---|---|
-| `PATIENT` | Module 2 | Core entity — referenced by 6 other tables |
-| `PATIENT_CONTACT` | Module 2 | FK → `PATIENT` |
-| `USER_ACCOUNT` | Module 1 | FK → `PATIENT` or `STAFF` (CHECK constraint) |
-| `AUDIT_LOG` | Module 6 | FK → `USER_ACCOUNT` |
-| `DEPARTMENT` | Module 6 | FK → `STAFF` (head) |
-| `STAFF` | Module 3 | FK → `DEPARTMENT` |
-| `DOCTOR` | Module 3 | PK + FK → `STAFF` (subtype) |
-| `TIMESLOT` | Module 3 | Referenced by `APPOINTMENT` |
-| `APPOINTMENT` | Module 4 | FK → `PATIENT`, `STAFF`, `TIMESLOT` |
-| `QUEUE_ENTRY` | Module 5 | FK → `APPOINTMENT` (1:1, UNIQUE) |
-| `MEDICAL_RECORD` | Module 4/2 | FK → `APPOINTMENT`, `PATIENT` |
-| `NOTIFICATION` | Module 7 | FK → `APPOINTMENT`, `PATIENT` or `STAFF` |
+| Python | 3.11+ | [python.org](https://www.python.org/downloads/) |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| PostgreSQL | 15 | [postgresql.org](https://www.postgresql.org/download/) |
+| Git | Latest | [git-scm.com](https://git-scm.com/) |
 
 ---
 
-## 🏄 Getting Started
+## 🚀 Getting Started
 
-### 1. Clone & Install
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-org>/cbs-clinic.git
-cd cbs-clinic
+git clone https://github.com/smangelemapss/Ubuntu-clinic-DBMS-grp-19.git
+cd Ubuntu-clinic-DBMS-grp-19
 ```
+
+> ⚠️ **Team members:** Always clone from `dev`, never from `main`. Read [TEAM_WORKFLOW.md](./TEAM_WORKFLOW.md) before writing any code.
 
 ### 2. Backend Setup
 
@@ -71,46 +75,45 @@ cd backend
 
 # Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate        # Mac/Linux
+source venv/bin/activate        # Mac / Linux
 venv\Scripts\activate           # Windows
 
-# Install dependencies
+# Install all dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Environment Setup (Critical!) 🔑
+### 3. Environment Configuration
 
-We do not commit real credentials to GitHub. Create a `.env` file in the `backend/` directory:
+We never commit real credentials to GitHub. Create your local `.env` file:
 
 ```bash
-# Copy the example file
 cp .env.example .env
 ```
 
-Then open `.env` and fill in your values:
+Open `.env` and fill in your values:
 
 ```env
 SECRET_KEY=your-django-secret-key-here
 DEBUG=True
-DB_NAME=cbs_clinic
+DB_NAME=ubuntu_clinic
 DB_USER=postgres
 DB_PASSWORD=your-postgres-password
 DB_HOST=localhost
 DB_PORT=5432
 ```
 
-> ⚠️ `.env` is in `.gitignore`. **Never commit it.** Ask the DB Lead (S1) for staging/production values.
+> 🔑 `.env` is in `.gitignore` — it will never be committed. Ask S1 (DB Lead) for staging or production values.
 
 ### 4. Database Setup
 
 ```bash
 # Create the PostgreSQL database
-psql -U postgres -c "CREATE DATABASE cbs_clinic;"
+psql -U postgres -c "CREATE DATABASE ubuntu_clinic;"
 
-# Apply all migrations (run in dependency order)
+# Apply all migrations — schema created in FK dependency order
 python manage.py migrate
 
-# Seed the database with realistic demo data
+# Seed with realistic demo data across all 12 tables
 python manage.py seed_db
 ```
 
@@ -118,77 +121,164 @@ python manage.py seed_db
 
 ```bash
 python manage.py runserver
-# API available at http://localhost:8000/api/
-# Admin panel at http://localhost:8000/admin/
 ```
 
-### 6. Frontend Setup
+| Service | URL |
+|---|---|
+| API | `http://localhost:8000/api/v1/` |
+| Admin Panel | `http://localhost:8000/admin/` |
+
+### 6. Run the Frontend
 
 ```bash
 cd ../frontend
 npm install
 npm start
-# React app at http://localhost:3000/
 ```
+
+| Service | URL |
+|---|---|
+| React App | `http://localhost:3000/` |
+
+---
+
+## 🏗 Architecture
+
+The system is built on a strict four-layer architecture. Each layer has one responsibility and communicates only with the layer directly below it.
+
+```
+┌───────────────────────────────────────────────┐
+│           PRESENTATION LAYER                  │
+│   React 18 · React Router · Tailwind · axios  │
+│   Renders UI · never calls DB directly        │
+└──────────────────┬────────────────────────────┘
+                   │  HTTP/JSON · /api/v1/
+┌──────────────────▼────────────────────────────┐
+│           APPLICATION LAYER                   │
+│   Django Views · DRF Serializers · SimpleJWT  │
+│   Enforces rules · validates · authorizes     │
+└──────────────────┬────────────────────────────┘
+                   │  Django ORM · QuerySets
+┌──────────────────▼────────────────────────────┐
+│           DATA ACCESS LAYER                   │
+│   Django ORM · psycopg2 · Raw SQL (reports)   │
+│   Translates intent into database queries     │
+└──────────────────┬────────────────────────────┘
+                   │  SQL
+┌──────────────────▼────────────────────────────┐
+│           DATABASE LAYER                      │
+│   PostgreSQL 15 · FK · UNIQUE · CHECK         │
+│   Stores data · enforces integrity · ACID     │
+│        PRIMARY EXAM DELIVERABLE               │
+└───────────────────────────────────────────────┘
+```
+
+**The Adapter Rule:** React never queries the database. All HTTP calls go through `src/services/`. All Django views go through serializers. Raw SQL lives only in `admin_reporting/queries.py`.
+
+Full architecture detail — layers, libraries, services, design decisions — in [docs/SYSTEM_DESIGN.md](./docs/SYSTEM_DESIGN.md).
+
+---
+
+## 🗄 Database Schema
+
+The schema was finalized in Phase 2 and is locked. **Do not rename columns or restructure without telling S1 first** — every foreign key in the system depends on these exact names.
+
+| Domain | Table | Key Constraint |
+|---|---|---|
+| Identity | `PATIENT` | `UNIQUE(student_number)` · `UNIQUE(email)` |
+| Identity | `PATIENT_CONTACT` | `FK → PATIENT` ON DELETE CASCADE |
+| Identity | `USER_ACCOUNT` | `CHECK(patient OR staff NOT NULL)` · `UNIQUE(username)` |
+| Staff | `DEPARTMENT` | `UNIQUE(department_name)` |
+| Staff | `STAFF` | `UNIQUE(email)` · `FK → DEPARTMENT` |
+| Staff | `DOCTOR` | `PK = FK → STAFF` · `UNIQUE(license_number)` |
+| Scheduling | `TIMESLOT` | `is_available DEFAULT TRUE` |
+| Scheduling | `APPOINTMENT` | `UNIQUE(slot_id)` · `ON DELETE PROTECT` on all FKs |
+| Operations | `QUEUE_ENTRY` | `UNIQUE(appointment_id)` |
+| Operations | `MEDICAL_RECORD` | `FK → APPOINTMENT + PATIENT` |
+| System | `NOTIFICATION` | `CHECK(patient OR staff NOT NULL)` |
+| System | `AUDIT_LOG` | `FK → USER_ACCOUNT` · auto-timestamp · append-only |
+
+**Migration order:** Level 1 → `PATIENT · TIMESLOT · DEPARTMENT` → Level 2 → `PATIENT_CONTACT · STAFF` → Level 3 → `DOCTOR · USER_ACCOUNT` → Level 4 → `APPOINTMENT · AUDIT_LOG` → Level 5 → `QUEUE_ENTRY · MEDICAL_RECORD · NOTIFICATION`
+
+S1 owns all migrations. No one runs `makemigrations` without S1 approval.
 
 ---
 
 ## 📂 Project Structure
 
-```text
-cbs-clinic/
-├── backend/
-│   ├── config/                  # Django settings, urls, wsgi
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── apps/
-│   │   ├── auth_module/         # Module 1 — USER_ACCOUNT, JWT
-│   │   ├── patients/            # Module 2 — PATIENT, PATIENT_CONTACT, MEDICAL_RECORD
-│   │   ├── doctors/             # Module 3 — STAFF, DOCTOR, TIMESLOT, DEPARTMENT
-│   │   ├── appointments/        # Module 4 — APPOINTMENT
-│   │   ├── queue/               # Module 5 — QUEUE_ENTRY
-│   │   ├── admin_reporting/     # Module 6 — AUDIT_LOG, raw SQL reports
-│   │   └── notifications/       # Module 7 — NOTIFICATION, seed_db command
-│   ├── requirements.txt
-│   ├── manage.py
-│   └── .env.example
-│
-├── frontend/
-│   ├── src/
-│   │   ├── pages/               # Route-level components
-│   │   ├── components/          # Shared UI components
-│   │   ├── services/            # Axios API service layer
-│   │   └── context/             # AuthContext (JWT)
-│   ├── package.json
-│   └── tailwind.config.js
+```
+Ubuntu-clinic-DBMS-grp-19/
 │
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # GitHub Actions — pytest on every PR
+│       └── ci.yml               # GitHub Actions — pytest on every PR to dev
 │
-└── README.md
+├── backend/
+│   ├── config/                  # Django settings · root URLs · WSGI
+│   ├── apps/
+│   │   ├── auth_module/         # B1 — USER_ACCOUNT · JWT · permissions
+│   │   ├── patients/            # B2 — PATIENT · PATIENT_CONTACT · MEDICAL_RECORD · TIMESLOT
+│   │   ├── doctors/             # B2/B3 — STAFF · DOCTOR · DEPARTMENT
+│   │   ├── appointments/        # B3 — APPOINTMENT · booking · QR generation
+│   │   ├── queue/               # B3 — QUEUE_ENTRY · check-in · status flow
+│   │   ├── admin_reporting/     # B4 — AUDIT_LOG · raw SQL reports
+│   │   └── notifications/       # S1 — NOTIFICATION · email · seed_db
+│   ├── requirements.txt
+│   ├── manage.py
+│   ├── pytest.ini
+│   ├── conftest.py              # Shared test fixtures — written and owned by S1
+│   └── .env.example
+│
+├── frontend/
+│   └── src/
+│       ├── routes/              # F1 — route definitions + ProtectedRoute
+│       ├── context/             # F1 — AuthContext · JWT · role
+│       ├── services/            # F1 — all axios calls · one file per backend app
+│       ├── pages/
+│       │   ├── auth/            # F1 — Login · Register
+│       │   ├── patient/         # F2 — Dashboard · Profile · Booking · Records
+│       │   ├── doctor/          # F3 — Dashboard · Schedule · Queue Board
+│       │   └── admin/           # F4 — Reports · Audit Log · Notifications
+│       ├── components/          # F1 — shared UI · no API calls
+│       └── utils/               # Formatters · role guards · error handlers
+│
+├── docs/
+│   └── SYSTEM_DESIGN.md         # Complete system design blueprint
+│
+├── README.md                    # This file
+├── CONTRIBUTING.md              # Standards · branching · PR process · The Laws
+└── TEAM_WORKFLOW.md             # Operational guide · git workflow · role responsibilities
 ```
-
-### 🧠 The Adapter Rule
-
-**Important:** React must never query the database directly.
-
-- **React pages** should only call **axios service functions** (e.g., `patientsService.getAll()`).
-- **Service functions** call Django API endpoints (`/api/patients/`).
-- **Django views** use the ORM or raw SQL to talk to PostgreSQL.
-
-If the backend URL structure changes, only the service layer changes — no React component needs to be touched.
 
 ---
 
-## 🌍 Environment Files
+## 🌐 API Reference
 
-| File | Committed | Purpose |
-|---|---|---|
-| `backend/.env.example` | ✅ Yes | Template — all variable names, no real values |
-| `backend/.env` | ❌ No | Local development — your real credentials |
-| Render env vars | ❌ No | Production — set in Render.com dashboard |
+All endpoints versioned at `/api/v1/`. Protected routes require `Authorization: Bearer <token>`.
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/login/` | Public | Returns JWT access + refresh tokens |
+| `POST` | `/api/v1/auth/register/` | Public | Creates `USER_ACCOUNT` |
+| `POST` | `/api/v1/auth/refresh/` | Public | Returns new access token |
+| `POST` | `/api/v1/auth/logout/` | Protected | Blacklists refresh token |
+| `GET/POST` | `/api/v1/patients/` | Auth | List or register patients |
+| `GET/PATCH` | `/api/v1/patients/{id}/` | Patient · Admin | Profile view and update |
+| `GET` | `/api/v1/patients/{id}/records/` | Doctor · Patient | Full medical history |
+| `GET` | `/api/v1/timeslots/?date=YYYY-MM-DD&available=true` | Auth | Available slots for a date |
+| `GET/POST` | `/api/v1/appointments/` | Auth | List or book appointments |
+| `PATCH` | `/api/v1/appointments/{id}/cancel/` | Patient · Admin | Cancel appointment |
+| `POST` | `/api/v1/queue/check-in/` | Patient | Check in via QR token |
+| `PATCH` | `/api/v1/queue/{id}/status/` | Doctor · Admin | `WAITING → IN_PROGRESS → COMPLETED` |
+| `GET` | `/api/v1/admin/reports/daily/` | Admin | Appointments per day — raw SQL |
+| `GET` | `/api/v1/admin/reports/wait-times/` | Admin | Average wait time per doctor — raw SQL |
+| `GET` | `/api/v1/admin/audit-log/` | Admin | Full audit trail |
+| `GET` | `/api/v1/notifications/` | Auth | Notification history |
+
+**Standard error shape — every endpoint:**
+```json
+{ "error": "Slot is no longer available", "code": "SLOT_UNAVAILABLE", "status": 409 }
+```
 
 ---
 
@@ -197,76 +287,67 @@ If the backend URL structure changes, only the service layer changes — no Reac
 ```bash
 cd backend
 
-# Run all tests
-pytest
-
-# Run tests for a specific module
-pytest apps/auth_module/tests/
-pytest apps/patients/tests/
-pytest apps/appointments/tests/
-
-# Run with verbose output
-pytest -v --tb=short
+pytest                          # full suite
+pytest apps/auth_module/        # single module
+pytest -v --tb=short            # verbose with traceback
 ```
 
-Tests use a separate test database. `conftest.py` provides shared fixtures (test patient, test doctor, test timeslot) so every module has consistent test data.
+`conftest.py` provides shared fixtures across all modules. The CI pipeline runs the full suite on every PR to `dev`. A failing test blocks the merge — no exceptions.
 
 ---
 
-## 🌐 API Endpoints Overview
+## 🚢 Deployment
 
-All endpoints are prefixed with `/api/`. JWT token required on all protected routes.
+Deployed on **Render.com** as three linked services — PostgreSQL managed database, Django backend (Gunicorn), and React static site. All managed and deployed by S1.
 
-| Method | Endpoint | Module | Description |
-|---|---|---|---|
-| `POST` | `/auth/login/` | 1 | Returns JWT access + refresh tokens |
-| `POST` | `/auth/register/` | 1 | Creates USER_ACCOUNT |
-| `GET/POST` | `/patients/` | 2 | List / create patients |
-| `GET/PATCH` | `/patients/{id}/` | 2 | Retrieve / update patient |
-| `GET` | `/patients/{id}/records/` | 2 | Medical history for a patient |
-| `GET` | `/timeslots/?date=YYYY-MM-DD` | 3 | Available slots for a given date |
-| `GET/POST` | `/appointments/` | 4 | List / create appointments |
-| `PATCH` | `/appointments/{id}/cancel/` | 4 | Cancel an appointment |
-| `POST` | `/queue/check-in/` | 5 | Patient check-in via QR token |
-| `PATCH` | `/queue/{id}/status/` | 5 | Advance queue status |
-| `GET` | `/admin/reports/` | 6 | Daily counts, wait times (raw SQL) |
-| `GET` | `/notifications/` | 7 | Notification history |
-
----
-
-## 🚀 Deployment
-
-The application is deployed on **Render.com** as three services:
-
-1. **PostgreSQL** — Render managed database
-2. **Backend** — Python/Django web service
-3. **Frontend** — React static site
-
-**Live URL:** `https://cbs-clinic.onrender.com` _(update once deployed)_
+**Live URL:** `https://ubuntu-campus-clinic.onrender.com` *(updated by S1 once deployed)*
 
 ---
 
 ## 👥 Team
 
-| Role | Name | Module | Tables |
+| Role | Code | Tables Owned | Key Deliverables |
 |---|---|---|---|
-| DB Lead + DevOps | S1 | 7/9 | NOTIFICATION + all migrations + deployment |
-| Auth | Module 1 | 1 | USER_ACCOUNT |
-| Patient | Module 2 | 2 | PATIENT, PATIENT_CONTACT, MEDICAL_RECORD |
-| Doctor + Scheduling | Module 3 | 3 | STAFF, DOCTOR, TIMESLOT, DEPARTMENT |
-| Appointment Booking | Module 4 | 4 | APPOINTMENT |
-| Queue Management | Module 5 | 5 | QUEUE_ENTRY |
-| Admin + Reporting | Module 6 | 6 | AUDIT_LOG, DEPARTMENT |
-| Notifications | Module 7 | 7 | NOTIFICATION |
-| Integration + Testing | Module 8 | 8 | — (all modules) |
+| **DB Lead + DevOps + QA** | S1 | ALL tables (migration owner) · `NOTIFICATION` | All 12 models · migrations · seed_db · CI · Render |
+| **Backend Lead — Auth** | B1 | `USER_ACCOUNT` · `DEPARTMENT` · `STAFF` · `DOCTOR` | JWT endpoints · permission classes · Django admin |
+| **Backend — Patients & Timeslots** | B2 | `PATIENT` · `PATIENT_CONTACT` · `MEDICAL_RECORD` · `TIMESLOT` | Patient CRUD · timeslot availability endpoints |
+| **Backend — Bookings & Queue** | B3 | `APPOINTMENT` · `QUEUE_ENTRY` · `NOTIFICATION` (logic) | Booking · QR generation · queue check-in · email |
+| **Backend — Admin & Reporting** | B4 | `AUDIT_LOG` | Raw SQL reports · audit middleware · pytest suite |
+| **Frontend Lead — Auth & Layout** | F1 | — | App shell · AuthContext · shared components · routing |
+| **Frontend — Patient & Medical** | F2 | — | Patient profile · medical history · appointment list |
+| **Frontend — Doctor & Booking** | F3 | — | Doctor dashboard · Big Calendar · booking form · queue board |
+| **Frontend — Admin & Notifications** | F4 | — | Reports dashboard · audit log · notification panel |
+
+---
+
+## 📖 Documentation
+
+| Document | What It Covers |
+|---|---|
+| [docs/SYSTEM_DESIGN.md](./docs/SYSTEM_DESIGN.md) | Full architecture · schema · API contracts · security · design decisions |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Engineering standards · branch naming · commit format · PR process · The Laws |
+| [TEAM_WORKFLOW.md](./TEAM_WORKFLOW.md) | Day-to-day git workflow · role responsibilities · sprint timeline · recovery steps |
 
 ---
 
 ## 📚 Resources
 
-- [Django Documentation](https://docs.djangoproject.com/)
-- [Django REST Framework](https://www.django-rest-framework.org/)
-- [React Documentation](https://react.dev/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [pytest-django](https://pytest-django.readthedocs.io/)
-- [Render.com Docs](https://render.com/docs)
+| Resource | Link |
+|---|---|
+| Django Documentation | [docs.djangoproject.com](https://docs.djangoproject.com/) |
+| Django REST Framework | [django-rest-framework.org](https://www.django-rest-framework.org/) |
+| SimpleJWT | [django-rest-framework-simplejwt.readthedocs.io](https://django-rest-framework-simplejwt.readthedocs.io/) |
+| React Documentation | [react.dev](https://react.dev/) |
+| PostgreSQL Documentation | [postgresql.org/docs](https://www.postgresql.org/docs/) |
+| pytest-django | [pytest-django.readthedocs.io](https://pytest-django.readthedocs.io/) |
+| Render.com Docs | [render.com/docs](https://render.com/docs) |
+
+---
+
+<div align="center">
+
+*Ubuntu Campus Clinic — Appointment System · Group 19 · CMPG 311 · DBMS Module*
+
+*Built database-first. Designed to scale. Engineered as a team.*
+
+</div>

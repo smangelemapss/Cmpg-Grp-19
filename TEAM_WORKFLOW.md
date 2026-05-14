@@ -1,5 +1,5 @@
 # Ubuntu Campus Clinic — Team Workflow
-## Operational Guide · Group 19 · Phase 3
+## Operational Guide · Group 19 · Phase 3 · Oracle SQL Migration
 
 > This is the operational guide — not the rules document. CONTRIBUTING.md covers the rules. This document covers exactly how each role works day to day, how git works in practice, and what to do when things break.
 
@@ -9,11 +9,11 @@
 
 1. [Daily Workflow Loop](#1-daily-workflow-loop)
 2. [Git in Practice](#2-git-in-practice)
-3. [S1 — DB Lead, DevOps & QA](#3-s1--db-lead-devops--qa)
+3. [S1 — DB Lead & DevOps](#3-s1--db-lead--devops)
 4. [B1 B2 B3 B4 — Backend Team](#4-b1-b2-b3-b4--backend-team)
 5. [F1 F2 F3 F4 — Frontend Team](#5-f1-f2-f3-f4--frontend-team)
 6. [Cross-Team Collaboration](#6-cross-team-collaboration)
-7. [Pull Request Workflow on GitHub](#7-pull-request-workflow-on-github)
+7. [Pull Request Workflow](#7-pull-request-workflow-on-github)
 8. [When Things Go Wrong](#8-when-things-go-wrong)
 9. [Sprint Timeline](#9-sprint-timeline)
 
@@ -21,7 +21,7 @@
 
 ## 1. Daily Workflow Loop
 
-Every team member — backend, frontend, S1 — follows this sequence every working day.
+Every team member follows this sequence every working day.
 
 ### Before Writing Any Code
 
@@ -45,12 +45,11 @@ git merge dev
 ### While Coding
 
 ```bash
-git status                            # see what has changed
-git diff                              # see exact line changes
-git add apps/patients/serializers.py  # stage a specific file
-git add apps/patients/                # stage your whole module folder
-git commit -m "feat(b2): add PatientSerializer with validation"
-git push origin feature/b2-patient-api
+git status
+git diff
+git add sql/04_queries/05_queries.sql
+git commit -m "feat(s1): add GROUP BY and HAVING queries for appointments"
+git push origin feature/5-oracle-raw-sql-migration
 ```
 
 ### Before Closing the Laptop
@@ -58,7 +57,7 @@ git push origin feature/b2-patient-api
 ```bash
 git status        # check for uncommitted work
 git add .
-git commit -m "wip(b2): patient view in progress"
+git commit -m "wip(b2): patient_repo get and create functions in progress"
 git push origin feature/b2-patient-api
 ```
 
@@ -68,387 +67,194 @@ Push every session. Never lose work.
 
 ## 2. Git in Practice
 
-### How Branches Actually Work
-
-A branch is just a pointer to a specific commit. Working on `feature/b2-patient-api` means `main` and `dev` are completely unaffected — you cannot break what you cannot touch.
-
-```
-main         →  points to commit X  (untouched)
-dev          →  points to commit Y  (integration)
-feature/b2   →  points to commit Z  (your work)
-```
-
 ### How to Read the Branch Graph
 
 ```bash
 git log --oneline --graph --all
 
 # Example output:
-# * f3a1c2d (HEAD -> feature/b2-patient-api) feat(b2): add views
-# * 8b2e4a1 feat(b2): add PatientSerializer
-# | * 2a8c1b4 (dev) feat(b1): add JWT login endpoint
+# * f3a1c2d (HEAD -> feature/b2-patient-api) feat(b2): add patient_repo functions
+# * 8b2e4a1 feat(b2): add oracle_connection import
+# | * 2a8c1b4 (dev) feat(s1): add Oracle DDL 12-table schema
 # |/
-# * 1e4f9d3 chore(s1): initial Django scaffold
+# * 1e4f9d3 chore(s1): initial project scaffold
 ```
 
 ### How to Undo Things Safely
 
-**Changed a file but not staged — discard changes:**
+**Changed a file but not staged:**
 ```bash
-git restore apps/patients/models.py
-# WARNING: permanent — changes are gone
+git restore sql/04_queries/05_queries.sql
+# WARNING: permanent
 ```
 
-**Staged a file but not committed — unstage it:**
+**Staged but not committed:**
 ```bash
-git restore --staged apps/patients/models.py
-# Changes kept — file goes back to modified state
+git restore --staged sql/04_queries/05_queries.sql
 ```
 
-**Committed but not pushed — undo the commit, keep changes:**
+**Committed but not pushed:**
 ```bash
 git reset --soft HEAD~1
-# Changes go back to staged — fix and recommit
+# Changes go back to staged
 ```
 
-**Committed and pushed — undo safely:**
+**Committed and pushed:**
 ```bash
-# NEVER use git reset on pushed commits
 git revert HEAD
-# Creates a new commit that reverses the last one — history preserved
+# Creates a new undo commit — history preserved
 ```
 
 ### Handling a Merge Conflict
 
 ```bash
-# After git merge dev outputs a conflict:
 git status
 # Files under "both modified" have conflicts
 
-# Open the file — Git marks it like this:
+# Edit the file — remove ALL Git markers:
 <<<<<<< HEAD
-    your version here
+    your version
 =======
-    incoming version here
+    incoming version
 >>>>>>> dev
 
-# Edit the file — remove ALL markers, keep the correct version
-# Then:
-git add apps/patients/models.py
-git commit -m "merge: resolve conflict in Patient model"
+git add sql/04_queries/05_queries.sql
+git commit -m "merge: resolve conflict in queries file"
 git push origin feature/your-branch
 ```
 
 ---
 
-## 3. S1 — DB Lead, DevOps & QA
+## 3. S1 — DB Lead & DevOps
 
-S1 is the shared role that bridges both teams. S1 does not own a feature module. S1 owns the foundation that every module builds on.
+S1 owns the entire Oracle SQL layer. This is the primary exam deliverable. Every team member depends on S1 completing the database setup before they can build anything.
 
-### Day 1 — Before Anyone Else Writes Code
+### Phase 3 Migration — What S1 Does First (Issue #5)
 
-**Step 1 — Create and configure the repository**
+S1 created Issue #5 and branch `feature/5-oracle-raw-sql-migration`. The work is:
+
+**Step 1 — Write `sql/01_DDL/01_create_tables.sql`**
+
+12 tables in FK dependency order. Every table must have:
+- Oracle data types (`VARCHAR2`, `NUMBER`, `DATE`, `TIMESTAMP`)
+- `GENERATED ALWAYS AS IDENTITY` primary keys
+- Named `CONSTRAINT` clauses for every PK, FK, UNIQUE, and CHECK
+- Correct `ON DELETE` behaviour on all FKs
+
+Dependency order:
+```
+Level 1: PATIENT · TIMESLOT · DEPARTMENT
+Level 2: PATIENT_CONTACT · STAFF
+Level 3: DOCTOR · USER_ACCOUNT
+Level 4: APPOINTMENT · AUDIT_LOG
+Level 5: QUEUE_ENTRY · MEDICAL_RECORD · NOTIFICATION
+```
 
 ```bash
-# On GitHub:
-# Create repo: Ubuntu-clinic-DBMS-grp-19
-# Add all 9 members as collaborators with Write access
-# Settings → Branches → Add protection rule for main and dev:
-#   - Require PR before merging
-#   - Require 2 approvals
-#   - Require status checks (pytest CI) to pass
-#   - Do not allow bypassing
-
-git clone https://github.com/smangelemapss/Ubuntu-clinic-DBMS-grp-19.git
-cd Ubuntu-clinic-DBMS-grp-19
-git checkout -b feature/s1-scaffold
+git add sql/01_DDL/01_create_tables.sql
+git commit -m "feat(s1): add Oracle 12-table DDL schema with all constraints"
 ```
 
-**Step 2 — Scaffold the Django project**
+**Step 2 — Write `sql/01_DDL/02_create_indexes.sql`**
+
+At minimum:
+- `idx_timeslot_date` — slot availability queries
+- `idx_timeslot_date_avail` — composite, most frequent query
+- `idx_appt_patient`, `idx_appt_staff`, `idx_appt_status`
+- `idx_queue_appt`, `idx_mr_patient`, `idx_audit_timestamp`
 
 ```bash
-django-admin startproject config .
-python manage.py startapp auth_module apps/auth_module
-python manage.py startapp patients apps/patients
-python manage.py startapp doctors apps/doctors
-python manage.py startapp appointments apps/appointments
-python manage.py startapp queue apps/queue
-python manage.py startapp admin_reporting apps/admin_reporting
-python manage.py startapp notifications apps/notifications
-
-git add .
-git commit -m "chore(s1): initial Django project scaffold — all 7 apps registered"
+git commit -m "feat(s1): add 12 performance indexes"
 ```
 
-**Step 3 — Write ALL 12 models**
+**Step 3 — Write `sql/01_DDL/03_create_views.sql`**
 
-S1 writes every model file across all apps. Backend developers (B1–B4) do not write models — they import and build serializers and views on top of what S1 defines. This prevents FK naming conflicts across parallel branches.
+4 views:
+- `vw_patient_appointments` — patient dashboard
+- `vw_daily_queue_board` — nurse/admin live queue
+- `vw_doctor_schedule` — doctor's daily schedule
+- `vw_audit_trail_summary` — POPIA compliance report
 
-Migration dependency order to follow when writing models:
-
-```
-Level 1 — write first (no FKs):
-  patients/models.py      → Patient, PatientContact
-  doctors/models.py       → Department, TimeSlot
-
-Level 2 — depends on Level 1:
-  doctors/models.py       → Staff (FK → Department)
-
-Level 3 — depends on Level 2:
-  doctors/models.py       → Doctor (PK = FK → Staff)
-  auth_module/models.py   → UserAccount (FK → Patient optional, Staff optional)
-
-Level 4 — depends on Level 3:
-  appointments/models.py  → Appointment (FK → Patient + Staff + TimeSlot)
-  admin_reporting/models.py → AuditLog (FK → UserAccount)
-
-Level 5 — depends on Level 4:
-  queue/models.py         → QueueEntry (FK → Appointment)
-  patients/models.py      → MedicalRecord (FK → Appointment + Patient)
-  notifications/models.py → Notification (FK → Appointment + Patient/Staff)
+```bash
+git commit -m "feat(s1): add 4 reporting views"
 ```
 
-Every model must have `db_table` in Meta matching the Phase 2 ERD exactly:
+**Step 4 — Write `sql/02_DML/04_insert_data.sql`**
+
+Realistic South African clinic data across all 12 tables:
+- 5 departments, 6 staff (3 doctors, 2 nurses, 1 admin)
+- 8 patients with student numbers, contacts
+- 12 timeslots (past + future), 8 appointments
+- Queue entries, medical records, notifications, audit logs
+
+```bash
+git commit -m "feat(s1): add seed data INSERT scripts for all 12 tables"
+```
+
+**Step 5 — Write `sql/04_queries/05_queries.sql`**
+
+All 11 rubric categories. Multiple examples per category. Clear comments above every query block.
+
+```bash
+git commit -m "feat(s1): implement all 11 rubric query categories"
+```
+
+**Step 6 — Write `sql/00_RUN_ALL.sql`**
+
+Master script using `@@` to call all files in order. Add verification queries at the end.
+
+```bash
+git commit -m "feat(s1): add master run script with verification checks"
+```
+
+**Step 7 — Write `backend/db/oracle_connection.py`**
 
 ```python
-class Patient(models.Model):
-    class Meta:
-        db_table = "PATIENT"
-```
+import cx_Oracle
 
-```bash
-git add .
-git commit -m "feat(s1): write all 12 models with correct db_table Meta names"
-```
-
-**Step 4 — Run migrations in dependency order**
-
-```bash
-python manage.py makemigrations patients
-python manage.py makemigrations doctors
-python manage.py makemigrations auth_module
-python manage.py makemigrations appointments
-python manage.py makemigrations admin_reporting
-python manage.py makemigrations queue
-python manage.py makemigrations notifications
-
-python manage.py migrate
-
-# Verify in psql
-psql -U postgres -d ubuntu_clinic
-\dt                        # list all 12 tables
-\d "APPOINTMENT"           # verify constraints on a specific table
-\d "USER_ACCOUNT"
-
-git add .
-git commit -m "db(s1): run all initial migrations — 12 tables created and verified"
-```
-
-**Step 5 — Write `conftest.py` with shared fixtures**
-
-All 9 modules use these fixtures. S1 owns and maintains this file.
-
-```python
-# conftest.py
-import pytest
-from apps.doctors.models import Department, Staff, Doctor, TimeSlot
-from apps.patients.models import Patient
-from apps.auth_module.models import UserAccount
-from apps.appointments.models import Appointment
-from datetime import date, time, timedelta
-
-@pytest.fixture
-def test_department(db):
-    return Department.objects.create(department_name="Medical")
-
-@pytest.fixture
-def test_staff(db, test_department):
-    return Staff.objects.create(
-        department=test_department,
-        first_name="Sibusiso", last_name="Nkosi",
-        role="DOCTOR", email="dr.nkosi@ubuntu-clinic.ac.za",
-        contact_number="0112345678",
-        working_hours_start=time(8, 0), working_hours_end=time(16, 0)
-    )
-
-@pytest.fixture
-def test_doctor(db, test_staff):
-    return Doctor.objects.create(
-        staff=test_staff,
-        license_number="HPCSA-001",
-        specialisation="General Practitioner"
-    )
-
-@pytest.fixture
-def test_patient(db):
-    return Patient.objects.create(
-        student_number="43224105",
-        first_name="Thabo", last_name="Nkosi",
-        email="thabo@nwu.ac.za",
-        contact_number="0712345678",
-        date_of_birth=date(2000, 1, 15),
-        consent_given=True
-    )
-
-@pytest.fixture
-def test_timeslot(db):
-    tomorrow = date.today() + timedelta(days=1)
-    return TimeSlot.objects.create(
-        slot_date=tomorrow,
-        start_time=time(9, 0),
-        end_time=time(9, 30),
-        is_available=True
-    )
-
-@pytest.fixture
-def test_appointment(db, test_patient, test_staff, test_timeslot):
-    return Appointment.objects.create(
-        patient=test_patient,
-        staff=test_staff,
-        slot=test_timeslot,
-        status="SCHEDULED",
-        booking_type="SICK",
-        priority="NORMAL"
+def get_connection():
+    return cx_Oracle.connect(
+        user="system",
+        password="your_password",
+        dsn="localhost:1521/XE"
     )
 ```
 
 ```bash
-git add conftest.py
-git commit -m "test(s1): write shared fixtures for all 12 tables"
+git commit -m "feat(s1): add Oracle connection factory"
 ```
 
-**Step 6 — Write the CI pipeline**
-
-```yaml
-# .github/workflows/ci.yml
-name: Ubuntu Clinic CI
-
-on:
-  pull_request:
-    branches: [dev, main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: ubuntu_clinic_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: testpass
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: cd backend && pip install -r requirements.txt
-      - name: Run migrations
-        run: cd backend && python manage.py migrate
-        env:
-          DB_NAME: ubuntu_clinic_test
-          DB_USER: postgres
-          DB_PASSWORD: testpass
-          DB_HOST: localhost
-          DB_PORT: 5432
-          SECRET_KEY: ci-test-secret-key-not-real
-          DEBUG: True
-      - name: Run pytest
-        run: cd backend && pytest --tb=short -v
-```
+**Step 8 — Push, open PR, merge to dev**
 
 ```bash
-git add .github/
-git commit -m "chore(s1): add GitHub Actions CI — pytest on every PR to dev"
-```
-
-**Step 7 — Push, open PR, merge to dev, announce**
-
-```bash
-git push -u origin feature/s1-scaffold
+git push origin feature/5-oracle-raw-sql-migration
 # Open PR on GitHub targeting dev
-# Self-review and merge
+# Title: feat(s1): Oracle raw SQL migration — 12 tables, indexes, views, queries
+# Body: Closes #5
 ```
 
 Post in group chat:
-> **"Repo scaffold is live on dev. All 12 models written and migrated. Clone from dev now. B1, B2, B3, B4 can start building serializers and views. Do NOT run makemigrations without asking me first."**
+> **"Issue #5 Oracle migration is live on dev. sql/ folder has everything. All backend devs: pull dev now and start your repo files. Oracle connection factory is in backend/db/oracle_connection.py."**
 
 ---
 
-### S1 Ongoing Responsibilities During the Sprint
+### S1 Ongoing Responsibilities
 
-**Migration governance — most critical recurring task:**
+**Schema change governance:**
 
-When any backend developer needs to add or change a field:
+When anyone needs to change the schema:
+1. They post: `"[SCHEMA REQUEST] B2 — adding allergies VARCHAR2(500) to PATIENT"`
+2. S1 checks impact on all views and repo queries
+3. S1 updates `01_create_tables.sql` and the relevant view/query files
+4. S1 commits and opens a `db/` PR
 
-1. Developer posts in group chat: `"[MIGRATION REQUEST] Adding allergies TEXT NULL to PATIENT — no FK impact"`
-2. S1 confirms no conflicts with open branches
-3. Developer runs `makemigrations <app>` only after S1 confirms
-4. Developer commits migration file and tags S1 as reviewer on the PR
-5. S1 tests the migration locally before approving:
+**Backend oracle_connection.py:**
 
-```bash
-git fetch origin
-git checkout feature/b2-patient-api
-python manage.py migrate
-psql -U postgres -d ubuntu_clinic
-\d "PATIENT"                  # verify new field is present
-python manage.py migrate patients 0001_initial  # verify rollback works
-```
+S1 owns this file. If the Oracle credentials or DSN change, S1 updates it and notifies everyone immediately.
 
-**`seed_db` command — mid-sprint:**
+**Deployment:**
 
-```bash
-git checkout -b feature/s1-seed-data
-# Write apps/notifications/management/commands/seed_db.py
-# Seed order must match migration dependency order:
-# departments → staff → doctors → patients → user_accounts →
-# timeslots → appointments → queue_entries → medical_records →
-# notifications → audit_logs
-git add .
-git commit -m "feat(s1): write seed_db management command for all 12 tables"
-```
-
-**API contract document — Day 1 alongside scaffold:**
-
-Write a short JSON contract for every endpoint and share it in the group chat so F1–F4 can mock immediately without waiting for backend:
-
-```
-POST /api/v1/appointments/
-Request:  { slot_id: int, staff_id: int, reason_for_visit: string }
-Response 201: { appointment_id: int, qr_code_token: string }
-Response 409: { error: string, code: "SLOT_UNAVAILABLE" }
-```
-
-**Deployment — end of sprint:**
-
-```bash
-git checkout -b feature/s1-deployment
-
-# On Render.com:
-# 1. Create PostgreSQL service — copy DATABASE_URL
-# 2. Create Backend web service:
-#    Build command: pip install -r requirements.txt && python manage.py migrate
-#    Start command: gunicorn config.wsgi
-#    Env vars: SECRET_KEY, DATABASE_URL, DEBUG=False, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS
-# 3. Create Frontend static site:
-#    Build command: npm install && npm run build
-#    Publish directory: build
-
-# First deploy only — seed the database:
-python manage.py seed_db
-
-git add .
-git commit -m "chore(s1): add Render deployment config and env vars"
-```
+S1 manages the live demo environment used in the video. Every SQL file must run cleanly in a fresh Oracle XE schema before submission.
 
 ---
 
@@ -458,84 +264,113 @@ git commit -m "chore(s1): add Render deployment config and env vars"
 
 | Role | Module | What to Build |
 |---|---|---|
-| **B1** | Auth & Roles | `USER_ACCOUNT` · JWT login/register/refresh/logout · `IsPatient` · `IsDoctor` · `IsAdmin` permission classes · Django admin registration for all 12 models · CORS + JWT settings |
-| **B2** | Patients & Timeslots | Patient CRUD endpoints · contact management · medical records (auth-gated) · timeslot availability and filtering |
-| **B3** | Bookings & Queue | Appointment create/cancel/update with QR generation · queue check-in + status flow · Django email for confirmations |
-| **B4** | Admin & Reporting | `AUDIT_LOG` auto-logging middleware · raw SQL reports · pytest unit tests for all backend modules |
+| **B1** | Auth | JWT login/register/refresh/logout · `user_account_repo.py` · permission middleware · route protection |
+| **B2** | Patients | `patient_repo.py` for `PATIENT`, `PATIENT_CONTACT`, and `MEDICAL_RECORD` · Patient API routes |
+| **B3** | Bookings & Queue | `appointment_repo.py` · `queue_repo.py` · Booking endpoint with slot locking · QR generation · queue check-in flow |
+| **B4** | Admin & Reporting | `audit_repo.py` · reporting endpoints · full pytest suite for all backend modules |
 
 ### Getting Started
 
 ```bash
-# Clone dev — after S1 has pushed the scaffold
 git checkout dev
 git pull origin dev
-git checkout -b feature/b2-patient-api   # use your assigned branch name
+git checkout -b feature/b2-patient-api   # your assigned branch
 
-# Verify the models S1 wrote
-cat apps/patients/models.py
-# Do NOT modify this file — only import from it
+# Verify oracle_connection.py is there (S1 must merge first)
+cat backend/db/oracle_connection.py
 ```
 
-### The Build Order — Follow This Exactly
+### Build Order — Follow This Exactly
 
 ```
-Step 1 — Import the model S1 wrote (do not rewrite it)
-Step 2 — Write the serializer
-Step 3 — Write the view
-Step 4 — Write the URL routing
+Step 1 — Import get_connection from oracle_connection.py
+Step 2 — Write the repo functions (SELECT, INSERT, UPDATE)
+Step 3 — Write the service layer (calls repo)
+Step 4 — Write the API routes (calls service)
 Step 5 — Write tests
 Step 6 — Commit each step separately
 ```
 
-**Example — B2 building Patient endpoints:**
+**Example — B2 writing patient_repo.py:**
 
 ```python
-# Step 1 — import, do not rewrite
-from patients.models import Patient
+# backend/db/patient_repo.py
+from db.oracle_connection import get_connection
 
-# Step 2 — serializer
-class PatientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Patient
-        fields = ['patient_id', 'student_number', 'first_name',
-                  'last_name', 'email', 'date_of_birth', 'consent_given']
-        read_only_fields = ['patient_id', 'registration_date']
+def get_all_patients():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT patient_id, student_number, first_name, last_name, "
+        "email, city, consent_given "
+        "FROM PATIENT ORDER BY last_name"
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
 
-# Step 3 — view
-class PatientViewSet(viewsets.ModelViewSet):
-    queryset = Patient.objects.all()
-    serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated]
+def get_patient_by_id(patient_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM PATIENT WHERE patient_id = :1",
+        [patient_id]
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
 
-# Step 4 — URL
-router = DefaultRouter()
-router.register(r'patients', PatientViewSet, basename='patient')
+def create_patient(student_number, first_name, last_name, email,
+                   contact_number, dob, street, city, postal_code):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO PATIENT "
+        "(student_number, first_name, last_name, email, contact_number, "
+        "date_of_birth, street, city, postal_code, consent_given) "
+        "VALUES (:1, :2, :3, :4, :5, TO_DATE(:6,'YYYY-MM-DD'), :7, :8, :9, 1)",
+        [student_number, first_name, last_name, email,
+         contact_number, dob, street, city, postal_code]
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
 ```
 
-Commit after each step:
+Commit each function group separately:
 
 ```bash
-git commit -m "feat(b2): add PatientSerializer with student number validation"
-git commit -m "feat(b2): add PatientViewSet with RBAC permissions"
-git commit -m "feat(b2): register patient URLs at /api/v1/patients/"
-git commit -m "test(b2): add patient registration and CRUD tests"
+git commit -m "feat(b2): add get_all_patients and get_patient_by_id to patient_repo"
+git commit -m "feat(b2): add create_patient INSERT function with bind variables"
+git commit -m "feat(b2): add Patient API GET and POST routes"
+git commit -m "test(b2): add patient repo and API endpoint tests"
 ```
 
-### Testing Your Endpoints Before Frontend Connects
+### Testing Your Endpoints
 
 ```bash
-# Get a JWT first
+# Start backend
+python app.py
+
+# Get JWT
 curl -X POST http://localhost:8000/api/v1/auth/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "testpatient", "password": "testpass"}'
+  -d '{"username": "student_10012345", "password": "testpass"}'
 
-# Call your endpoint
+# Call endpoint
 curl -X GET http://localhost:8000/api/v1/patients/ \
   -H "Authorization: Bearer <your_access_token>"
 ```
 
+Also verify directly in Oracle SQL Developer:
+```sql
+SELECT * FROM PATIENT;
+```
+
 Post in group chat when ready:
-> **"B2 endpoints live on dev — /api/v1/patients/ and /api/v1/patients/{id}/records/ working. F2 can connect."**
+> **"B2 patient endpoints live on dev. /api/v1/patients/ working. F2 can connect."**
 
 ---
 
@@ -545,14 +380,14 @@ Post in group chat when ready:
 
 | Role | Module | What to Build |
 |---|---|---|
-| **F1** | Layout, Auth & Routing | `App.jsx` routing · `AuthContext` · JWT storage · login + register pages · shared Navbar, Sidebar, Button, Input components · axios instance with JWT interceptor |
-| **F2** | Patient & Medical Pages | Patient profile view + edit · medical history list + record detail · emergency contact management · patient-facing appointment list |
-| **F3** | Doctor Dashboard & Booking | Doctor dashboard with React Big Calendar · timeslot availability UI · appointment booking form + QR display page · waiting room queue board |
-| **F4** | Admin UI & Notifications | Admin dashboard with Chart.js charts · audit log table with filters · department management page · notification history panel |
+| **F1** | Layout, Auth & Routing | `App.jsx` · `AuthContext` · JWT storage · login + register pages · shared components · axios interceptor |
+| **F2** | Patient & Medical Pages | Patient profile · medical history · emergency contacts · appointment list |
+| **F3** | Doctor Dashboard & Booking | Doctor dashboard · timeslot availability · booking form · QR display · queue board |
+| **F4** | Admin UI & Notifications | Admin reports dashboard · audit log table · notification history |
 
 ### The Core Rule
 
-React never calls the database. React never calls axios directly inside a component. All HTTP calls go through a service function in `src/services/`.
+React never calls the database. React never calls axios directly in a component.
 
 ```javascript
 // ❌ Wrong
@@ -565,14 +400,12 @@ const patients = await getPatients();
 
 ### Working Before Backend Endpoints Are Ready — Mocking
 
-F1–F4 can start building pages immediately using mocked service functions. When the real endpoint merges, swap the mock for the real call. The component never changes.
-
 ```javascript
 // src/services/patientService.js
 
-// Mock — use until B2 merges to dev
+// Mock — use until B2 merges
 export const getPatient = async (id) => {
-  return { patient_id: 1, first_name: "Thabo", email: "thabo@nwu.ac.za" };
+  return { patient_id: 1, first_name: "Karabo", email: "10012345@student.nwu.ac.za" };
 };
 
 // Real — swap in when B2 endpoint is live
@@ -582,88 +415,45 @@ export const getPatient = async (id) => {
 };
 ```
 
-### AuthContext — F1 Builds This First
-
-Every other frontend role depends on `AuthContext` being live. F1 builds and merges this before F2, F3, F4 build their pages.
-
-```javascript
-// src/context/AuthContext.jsx
-const AuthContext = createContext(null);
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-
-  const login = async (username, password) => {
-    const data = await loginUser(username, password);
-    setUser(data);
-    setRole(data.role);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, role, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-```
-
 ---
 
 ## 6. Cross-Team Collaboration
 
-### The Dependency Map
+### Dependency Map
 
 ```
-S1 scaffolds repo and all 12 models  ←  Everyone blocks on this
+S1 — Issue #5 Oracle migration merged to dev
          │
          ▼
-B1 merges JWT + permission classes   ←  All backend endpoints block on this
+B1 — oracle_connection.py + JWT auth merged
          │
-    ┌────┴─────────────┐
-    ▼                  ▼
-  B2 builds          B3 builds
-  Patient + Timeslot  Appointment + Queue
-    │                  │
-    └────────┬──────────┘
+    ┌────┴────────────────┐
+    ▼                     ▼
+  B2 — patient_repo    B3 — appointment_repo + queue_repo
+    │                     │
+    └────────┬────────────┘
              ▼
-         B3/B4 complete
+    B4 — audit_repo + tests
              │
              ▼
-    F1 merges AuthContext + shell   ←  All frontend pages block on this
+    F1 — AuthContext + shell merged
          │
     ┌────┼────┬────┐
     ▼    ▼    ▼    ▼
-   F2   F3   F4  (connect to real B-team endpoints as they merge)
+   F2   F3   F4  (connect to real endpoints as they merge)
 ```
 
 ### Communication Protocol
 
-Post in the group chat at these moments — every time:
+Post in group chat at these moments:
 
 | When | What to Post |
 |---|---|
-| Starting work | `"Starting feature/b2-patient-api today — building Patient CRUD serializer and views"` |
+| Starting work | `"Starting feature/b2-patient-api — building patient_repo.py today"` |
 | Endpoint ready | `"B2 endpoints live on dev — /api/v1/patients/ working. F2 can connect."` |
-| Migration needed | `"[MIGRATION REQUEST] B2 — adding allergies TEXT NULL to PATIENT, no FK impact"` |
-| PR open | `"PR open — feature/b2-patient-api. S1 tagged for migration review."` |
-| Blocked | `"Blocked on B1 — need JWT permission classes before I can gate my endpoints"` |
-
-### API Contract Agreement
-
-Before any frontend developer connects a page to a backend endpoint, both sides agree the contract in the group chat:
-
-```
-B3 posts:
-"Booking endpoint contract:
- POST /api/v1/appointments/
- Request:  { slot_id: int, staff_id: int, reason_for_visit: string, booking_type: string }
- Response 201: { appointment_id: int, qr_code_token: string }
- Response 409: { error: string, code: 'SLOT_UNAVAILABLE' }
- F3 — does this work for the booking form?"
-
-F3 replies: "Confirmed. Building the form against this contract."
-```
+| Schema question | `"[SCHEMA REQUEST] B2 — do we have an allergies field on PATIENT or do I add it?"` |
+| PR open | `"PR open — feature/b2-patient-api. Please review."` |
+| Blocked | `"Blocked on B1 — need JWT middleware before I can protect my routes"` |
 
 ---
 
@@ -672,25 +462,22 @@ F3 replies: "Confirmed. Building the form against this contract."
 ### Opening a PR
 
 1. Push your branch: `git push origin feature/your-branch`
-2. Go to GitHub — click **"Compare & pull request"** on the yellow banner
+2. Go to GitHub — click **"Compare & pull request"**
 3. **Set base branch to `dev`** — never `main`
-4. Fill in the PR description completely — every field
-5. Assign 2 reviewers minimum
-6. Tag S1 if any migration file is included
-7. Add the correct label (`feat`, `fix`, `db`, `docs`)
-8. Link the GitHub issue
+4. Fill in the PR description completely
+5. Assign 2 reviewers
+6. Tag S1 if any file in `sql/01_DDL/` is modified
+7. Link the issue: `Closes #5`
 
 ### Responding to Review Comments
 
 ```bash
-# Fix on your feature branch
-git add apps/patients/views.py
-git commit -m "fix(b2): address PR review — add missing ownership check"
+git add backend/db/patient_repo.py
+git commit -m "fix(b2): add missing cursor.close() in get_patient_by_id"
 git push origin feature/b2-patient-api
-# PR auto-updates on GitHub
-# Reply to each comment: "Fixed in commit abc1234"
-# Click "Resolve conversation"
-# Click "Re-request review"
+# Reply on GitHub: "Fixed in commit abc1234"
+# Click Resolve conversation
+# Click Re-request review
 ```
 
 ### After Merge
@@ -698,90 +485,48 @@ git push origin feature/b2-patient-api
 ```bash
 git checkout dev
 git pull origin dev
-git branch -d feature/b2-patient-api       # delete local branch
-# GitHub prompts to delete remote branch — click Delete branch
+git branch -d feature/b2-patient-api
 ```
 
-Post in group chat: **"B2 merged — Patient CRUD and /records/ endpoint live on dev"**
+Post in group chat: **"B2 merged — Patient CRUD live on dev"**
 
 ---
 
 ## 8. When Things Go Wrong
 
-### Migration Conflict
+### Oracle Connection Error
 
-**Symptoms:** `python manage.py migrate` fails with inconsistent migration history.
+**Symptom:** `cx_Oracle.DatabaseError: ORA-12541: TNS:no listener`
 
-**Action:** Tell S1 immediately. Do not try to fix alone.
+**Fix:**
+1. Confirm Oracle XE is running: open Services (Windows) or check `lsnrctl status` (Mac/Linux)
+2. Verify `backend/db/oracle_connection.py` has correct DSN, username, password
+3. Test connection in SQL Developer first — if SQL Developer connects, the Python code will too
 
-S1 resolves:
-```bash
-python manage.py showmigrations
-python manage.py makemigrations --merge
-```
+### ORA-00001: Unique Constraint Violated
 
-Everyone re-pulls dev after S1 fixes it.
+**Symptom:** INSERT fails with `ORA-00001`
 
-**Prevention:** Always ask S1 before running `makemigrations`. Always.
+**Fix:**
+1. Open SQL Developer
+2. Run: `SELECT * FROM PATIENT WHERE student_number = '10012345';`
+3. The row already exists — either truncate test data or use a different value
+4. For the seed script: add `DELETE FROM TABLE_NAME;` before INSERT blocks
 
----
+### ORA-02291: Integrity Constraint Violated (FK)
 
-### Accidentally Started Coding on Dev
+**Symptom:** INSERT on a child table fails because the parent row doesn't exist
 
-```bash
-# Do NOT commit — do NOT push
-git checkout -b feature/your-branch
-# Your uncommitted changes move with you
-# You are now safely on the correct branch
-```
+**Fix:** Check your insert order. Parent must exist before child. Refer to the dependency order in Section 3.
 
----
+### SQL File Won't Run (F5 in SQL Developer)
 
-### Accidentally Committed to Dev (Not Yet Pushed)
+**Symptom:** Script Output shows errors partway through
 
-```bash
-git checkout -b feature/your-branch   # save work to correct branch
-git checkout dev
-git reset --soft HEAD~1               # undo commit on dev — changes unstaged
-git restore .                         # discard changes on dev
-git checkout feature/your-branch      # work safely here
-```
-
----
-
-### Someone Pushed Directly to Dev
-
-Tell S1 immediately. S1 resolves:
-
-```bash
-git checkout dev
-git reset --hard <last-clean-commit-hash>
-git push origin dev --force-with-lease
-```
-
-Everyone re-pulls:
-```bash
-git checkout dev
-git fetch origin
-git reset --hard origin/dev
-```
-
----
-
-### CI Failing on Your PR
-
-```bash
-# Click the red X on GitHub — read the full error
-cd backend
-pytest --tb=short -v          # reproduce locally
-# Fix the failure
-git add .
-git commit -m "fix(b2): fix failing serializer test"
-git push origin feature/b2-patient-api
-# CI re-runs automatically
-```
-
----
+**Fix:**
+1. Check the exact Oracle error line number
+2. Look for `DROP TABLE` errors — add `CASCADE CONSTRAINTS PURGE` to every DROP
+3. Check for table creation order — create parent before child
 
 ### Your Branch Is Behind Dev
 
@@ -789,7 +534,8 @@ git push origin feature/b2-patient-api
 git checkout dev
 git pull origin dev
 git checkout feature/your-branch
-git merge dev                 # resolve any conflicts
+git merge dev
+# Resolve conflicts
 git push origin feature/your-branch
 ```
 
@@ -799,41 +545,30 @@ git push origin feature/your-branch
 
 | Day | Date | S1 | B1 | B2 | B3 | B4 | F1 | F2 | F3 | F4 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 4 May | Repo · scaffold · all 12 models · migrations · push to dev | Clone · plan B1 | Clone · plan B2 | Clone · plan B3 | Clone · plan B4 | Clone · plan F1 | Clone · plan F2 | Clone · plan F3 | Clone · plan F4 |
-| 2 | 5 May | CI pipeline · conftest.py · seed_db skeleton · API contracts | JWT login + register | Patient serializers | Appointment model review | Audit log middleware | AuthContext · axios instance | Mock patient service | Mock doctor service | Mock admin service |
-| 3 | 6 May | Support B-team · review migration requests | JWT refresh + logout · permission classes | Patient views + URLs | Appointment + Queue endpoints | Raw SQL reports | Login + register pages | Patient profile page | Doctor dashboard | Reports page |
-| 4 | 7 May | Review B1 PR | **B1 PR → merge to dev** | Patient tests | QR generation | pytest fixtures | Protected routes · Navbar | Patient medical history | Booking form | Audit log table |
-| 5 | 8 May | Support all · migration governance | Support F1 wiring | B2 PR open | Queue status flow | B4 PR open | Wire auth to B1 | Wire patient to B2 | Wire booking to B3 | Wire reports to B4 |
-| 6 | 9 May | Review all PRs | Done | **B2 PR → merge** | B3 PR open | **B4 PR → merge** | Done | Done | Queue board | Notifications panel |
-| 7 | 10 May | seed_db complete · review B3 | — | Done | **B3 PR → merge** | Done | Done | Done | **F3 PR → merge** | **F4 PR → merge** |
-| 8 | 11 May | All PRs reviewed · deploy prep | — | — | Done | Done | **F1 PR → merge** | **F2 PR → merge** | Done | Done |
-| 9 | 12 May | Deploy to Render · verify live URL | — | — | — | — | — | — | — | — |
-| 10 | 13 May | Verify seed data on production | All | All | All | All | All | All | All | All |
-| 11 | 14 May | Final sign-off · confirm examiner URL | — | — | — | — | — | — | — | — |
-| **Sub** | **18 May** | **Submit GitHub repo link + live Render URL** | | | | | | | | |
+| 1 | Now | Issue #5 · Oracle DDL · indexes · views · seed data | Clone · plan | Clone · plan | Clone · plan | Clone · plan | Clone · plan | Clone · plan | Clone · plan | Clone · plan |
+| 2 | +1 | All SQL files committed · master run script | user_account_repo.py · JWT login | patient_repo skeleton | appointment_repo skeleton | audit_repo skeleton | AuthContext · axios | Mock patient service | Mock doctor service | Mock admin service |
+| 3 | +2 | Support backend team · schema questions | JWT refresh + logout · route protection | Patient API routes | Appointment + Queue endpoints | Raw SQL report endpoints | Login + register pages | Patient profile page | Doctor dashboard | Reports page |
+| 4 | +3 | Review Issue #5 PR · merge to dev | **B1 PR → merge** | Patient tests | QR generation | pytest suite | Protected routes | Medical history page | Booking form | Audit log table |
+| 5 | +4 | Support all · schema governance | Support F1 wiring | B2 PR open | Queue status flow | B4 PR open | Wire auth to B1 | Wire patient to B2 | Wire booking to B3 | Wire reports to B4 |
+| 6 | +5 | Review all PRs | Done | **B2 PR → merge** | B3 PR open | **B4 PR → merge** | Done | Done | Queue board | Notifications |
+| 7 | +6 | Verify seed data on Oracle · video demo prep | — | Done | **B3 PR → merge** | Done | Done | Done | **F3 PR → merge** | **F4 PR → merge** |
+| 8 | +7 | All PRs reviewed | — | — | Done | Done | **F1 PR → merge** | **F2 PR → merge** | Done | Done |
+| 9 | +8 | Final Oracle SQL demo verification | All | All | All | All | All | All | All | All |
+| **Sub** | | **Submit GitHub repo link + video demo** | | | | | | | | |
 
 ### The Two Non-Negotiable Gates
 
 ```
-GATE 1 — Day 4
-B1 merges to dev
-JWT working · permission classes defined
-All backend endpoints are blocked until this is green
+GATE 1
+S1 merges Issue #5 to dev
+Oracle schema running · seed data loaded
+Everyone blocks until this is green
 
-GATE 2 — Day 7
-B3 merges to dev
-Appointment booking + queue flow working
-F3 cannot test end-to-end booking until this is green
+GATE 2
+B1 merges JWT auth to dev
+Route protection working
+All API endpoints block until this is green
 ```
-
-### Four Check-in Meetings
-
-| Meeting | Date | Each Person Reports |
-|---|---|---|
-| Check-in 1 | 7 May | Branch name · first endpoint or page · status |
-| Check-in 2 | 10 May | Endpoints or pages done · what is blocking · what is needed from other roles |
-| Check-in 3 | 13 May | All work merged or PR open · live URL status |
-| Check-in 4 | 16 May | Final walkthrough of live URL · every feature confirmed working |
 
 ---
 

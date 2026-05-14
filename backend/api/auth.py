@@ -86,7 +86,6 @@ def token_refresh():
         return error_response("Token has been revoked", "TOKEN_REVOKED", 401)
 
     try:
-        import jwt
         payload = decode_token(refresh_token)
     except Exception:
         return error_response("Invalid or expired refresh token", "INVALID_TOKEN", 401)

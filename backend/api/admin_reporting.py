@@ -98,7 +98,6 @@ def list_departments():
             "name": r[1],
             "head_doctor": r[2],
             "staff_count": r[3],
-            "created_at": r[4].isoformat() if r[4] else None,
         }
         for r in rows
     ]
@@ -130,7 +129,6 @@ def create_department():
             "name": row[1],
             "head_doctor": row[2],
             "staff_count": row[3],
-            "created_at": row[4].isoformat() if row[4] else None,
         },
         201,
     )
@@ -155,7 +153,6 @@ def update_department(dept_id):
             "name": row[1],
             "head_doctor": row[2],
             "staff_count": row[3],
-            "created_at": row[4].isoformat() if row[4] else None,
         }
     )
 
@@ -200,7 +197,6 @@ def list_users():
             "email": r[2],
             "role": r[3],
             "is_active": r[4] == "ACTIVE",
-            "date_joined": r[7].isoformat() if r[7] else None,
         }
         for r in rows
     ]

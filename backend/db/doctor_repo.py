@@ -54,8 +54,7 @@ def get_all_departments():
         SELECT dep.department_id,
                dep.department_name,
                s.first_name || ' ' || s.last_name AS head_doctor_name,
-               (SELECT COUNT(*) FROM STAFF st WHERE st.department_id = dep.department_id) AS staff_count,
-               dep.created_at
+               (SELECT COUNT(*) FROM STAFF st WHERE st.department_id = dep.department_id) AS staff_count
         FROM DEPARTMENT dep
         LEFT JOIN STAFF s ON dep.head_staff_id = s.staff_id
         ORDER BY dep.department_name
@@ -75,8 +74,7 @@ def get_department_by_id(dept_id):
         SELECT dep.department_id,
                dep.department_name,
                s.first_name || ' ' || s.last_name AS head_doctor_name,
-               (SELECT COUNT(*) FROM STAFF st WHERE st.department_id = dep.department_id) AS staff_count,
-               dep.created_at
+               (SELECT COUNT(*) FROM STAFF st WHERE st.department_id = dep.department_id) AS staff_count
         FROM DEPARTMENT dep
         LEFT JOIN STAFF s ON dep.head_staff_id = s.staff_id
         WHERE dep.department_id = :1

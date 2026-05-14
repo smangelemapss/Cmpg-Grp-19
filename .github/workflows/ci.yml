@@ -29,6 +29,5 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build frontend
-        run: npx vite build
-
+        run: node node_modules/vite/bin/vite.js build
       

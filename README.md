@@ -250,6 +250,7 @@ sql/
 ```
 Ubuntu-clinic-DBMS-grp-19/
 │
+├── .gitignore
 ├── .github/
 │   └── workflows/
 │       └── ci.yml               # GitHub Actions CI
@@ -266,6 +267,7 @@ Ubuntu-clinic-DBMS-grp-19/
 │       └── 05_queries.sql
 │
 ├── backend/
+│   ├── app.py
 │   ├── api/                     # Route handlers — HTTP request/response only
 │   ├── services/                # Business logic layer
 │   ├── db/
@@ -278,10 +280,14 @@ Ubuntu-clinic-DBMS-grp-19/
 │   │   ├── notification_repo.py # All NOTIFICATION SQL queries
 │   │   └── audit_repo.py        # All AUDIT_LOG SQL queries
 │   ├── utils/                   # JWT helpers, error handlers
+│   ├── tests/
 │   ├── requirements.txt
 │   └── .env.example
 │
 ├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── README.md
 │   └── src/
 │       ├── routes/
 │       ├── context/             # AuthContext · JWT · role

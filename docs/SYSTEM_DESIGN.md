@@ -213,6 +213,11 @@ No SQL string may appear in any backend file outside `backend/db/`. API files ha
 ```text
 Ubuntu-clinic-DBMS-grp-19/
 |
++-- .gitignore
++-- .github/
+|   +-- workflows/
+|       +-- ci.yml
+|
 +-- sql/                              <- PRIMARY EXAM DELIVERABLE
 |   +-- 00_RUN_ALL.sql                # Master script - F5 in SQL Developer
 |   +-- 01_DDL/
@@ -225,6 +230,7 @@ Ubuntu-clinic-DBMS-grp-19/
 |       +-- 05_queries.sql            # Rubric query categories
 |
 +-- backend/
+|   +-- app.py                        # Backend entry point
 |   +-- api/                          # Route handlers - HTTP only, no SQL
 |   |   +-- auth.py
 |   |   +-- patients.py
@@ -251,10 +257,12 @@ Ubuntu-clinic-DBMS-grp-19/
 |   |   +-- error_handler.py
 |   +-- tests/
 |   +-- requirements.txt
-|   +-- app.py                        # Backend entry point
 |   +-- .env.example
 |
 +-- frontend/
+|   +-- package.json
+|   +-- vite.config.js
+|   +-- README.md
 |   +-- src/
 |       +-- routes/
 |       +-- context/                  # AuthContext - JWT - role

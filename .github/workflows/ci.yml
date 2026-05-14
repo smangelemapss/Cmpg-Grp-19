@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - feature/*
+      - "feature/*"
   pull_request:
     branches:
       - dev
@@ -26,8 +26,11 @@ jobs:
         with:
           node-version: 20
 
+      - name: Remove committed node_modules
+        run: rm -rf node_modules
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build frontend
-        run: node node_modules/vite/bin/vite.js build
-      
+        run: npx vite build

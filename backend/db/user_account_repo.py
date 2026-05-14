@@ -30,8 +30,7 @@ def get_user_by_id(user_id):
                ua.role,
                ua.status,
                ua.patient_id,
-               ua.staff_id,
-               ua.date_joined
+               ua.staff_id
         FROM USER_ACCOUNT ua
         LEFT JOIN PATIENT p ON ua.patient_id = p.patient_id
         LEFT JOIN STAFF   s ON ua.staff_id   = s.staff_id
@@ -107,8 +106,7 @@ def get_all_users(role_filter=None, page=1, per_page=20):
                    ua.role,
                    ua.status,
                    ua.patient_id,
-                   ua.staff_id,
-                   ua.date_joined
+                   ua.staff_id
             FROM USER_ACCOUNT ua
             LEFT JOIN PATIENT p ON ua.patient_id = p.patient_id
             LEFT JOIN STAFF   s ON ua.staff_id   = s.staff_id
@@ -127,8 +125,7 @@ def get_all_users(role_filter=None, page=1, per_page=20):
                    ua.role,
                    ua.status,
                    ua.patient_id,
-                   ua.staff_id,
-                   ua.date_joined
+                   ua.staff_id
             FROM USER_ACCOUNT ua
             LEFT JOIN PATIENT p ON ua.patient_id = p.patient_id
             LEFT JOIN STAFF   s ON ua.staff_id   = s.staff_id

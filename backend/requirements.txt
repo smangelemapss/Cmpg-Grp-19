@@ -15,5 +15,8 @@ pillow==11.0.0
 # Environment
 python-dotenv==1.0.1
 
+# Passwords / security
+werkzeug==3.0.6
+
 # Testing
 pytest==8.3.4

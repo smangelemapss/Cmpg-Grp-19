@@ -16,3 +16,21 @@ export const getAppointments = async () => {
 
   return response.data;
 };
+
+export const getAvailableTimeslots = async (date) => {
+  const response = await api.get(
+    "/timeslots/",
+    { params: { date } }
+  );
+
+  return response.data;
+};
+
+export const bookAppointment = async (payload) => {
+  const response = await api.post(
+    "/appointments/book/",
+    payload
+  );
+
+  return response.data;
+};

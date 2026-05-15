@@ -1,3 +1,4 @@
+import AppointmentBooking from './pages/patient/AppointmentBooking';
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -15,7 +16,7 @@ function Dashboard() {
   );
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -44,10 +45,12 @@ function AppLayout() {
         onMenuClick={() => setSidebarOpen((o) => !o)}
         sidebarOpen={sidebarOpen}
       />
+
       <div className="flex flex-1 overflow-hidden">
         {user && (
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         )}
+
         <main className="flex-1 overflow-y-auto">
           <Routes>
             <Route
@@ -58,8 +61,10 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
+
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/appointments" element={<AppointmentBooking />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

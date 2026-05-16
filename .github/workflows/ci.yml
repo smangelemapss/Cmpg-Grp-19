@@ -34,3 +34,32 @@ jobs:
 
       - name: Build frontend
         run: npx vite build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (no cx_Oracle needed — tests are mocked)
+        run: pip install flask flask-cors pyjwt qrcode pillow python-dotenv werkzeug pytest
+
+      - name: Run pytest
+        env:
+          ORA_USER: system
+          ORA_PASSWORD: dummy
+          ORA_HOST: localhost
+          ORA_PORT: "1521"
+          ORA_SID: XE
+          JWT_SECRET: ci-test-secret
+          FLASK_ENV: development
+        run: pytest -q

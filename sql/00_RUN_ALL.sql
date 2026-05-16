@@ -3,13 +3,27 @@
 -- Group 19 | CMPG 311 | DBMS Module | Physical Design
 -- File: 00_RUN_ALL.sql
 -- Purpose: Master script — runs all SQL files in the correct order
--- HOW TO RUN: Open this file in Oracle SQL Developer → press F5 (Run Script)
 -- =============================================================================
--- IMPORTANT: Run this script from the PROJECT ROOT directory in SQL Developer.
--- The @sql/... paths below are relative to the directory SQL Developer is
--- opened from.  If you opened SQL Developer from inside the sql/ folder the
--- paths will fail with "File not found".  Always open SQL Developer (or set
--- its working directory) to the folder that CONTAINS the sql/ subfolder.
+--
+-- !! READ THIS BEFORE RUNNING !!
+--
+-- HOW TO RUN FROM SQL DEVELOPER:
+--   1. Open SQL Developer
+--   2. File → Open → navigate to THIS file (sql/00_RUN_ALL.sql)
+--   3. The working directory MUST be the repo root (the folder that
+--      CONTAINS the sql/ subfolder, not inside it)
+--   4. Press F5 (Run Script) — NOT the green play button
+--
+-- HOW TO RUN FROM SQL*PLUS INSIDE DOCKER:
+--   docker cp sql/ oracle-xe:/opt/oracle/sql/
+--   docker exec -it oracle-xe sqlplus system/Clinic@123@localhost:1521/XE
+--   @/opt/oracle/sql/00_RUN_ALL.sql
+--   (use the full /opt/oracle/sql/... path — NOT @sql/...)
+--
+-- WHY: The @sql/... paths below are relative to SQL Developer's working
+-- directory. If you opened SQL Developer from inside the sql/ folder,
+-- these paths WILL fail with "File not found". Always run from repo root.
+--
 -- =============================================================================
 
 -- Step 1: Create all 12 tables (DDL)

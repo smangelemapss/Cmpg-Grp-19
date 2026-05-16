@@ -52,7 +52,7 @@ def register(username, email, password):
         last_name=last_name,
         email=email,
         contact_number="0000000000",
-        date_of_birth="2000-01-01",
+        date_of_birth="01-jan-00",
         street="Unknown",
         city="Unknown",
         postal_code="0000",

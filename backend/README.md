@@ -16,6 +16,26 @@ Flask REST API backed by Oracle XE 21c.
 
 ---
 
+## Installation
+
+### For running tests (no Oracle needed)
+
+```bash
+pip install -r requirements.txt
+pytest -q
+# Expected: 81 passed
+```
+
+### For running the live server (Oracle XE required)
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-oracle.txt   # only after Oracle Instant Client is installed
+```
+
+For Oracle XE Docker setup (database + Instant Client), see **Run the Database Schema** below
+and the main repo `README.md` → Getting Started → Set Up Oracle Database.
+
 ## Setup Steps
 
 ```bash

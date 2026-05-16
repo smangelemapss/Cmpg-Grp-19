@@ -19,9 +19,22 @@ SEED_PASSWORD = "Clinic@123"
 SEED_USERNAMES = ["karabo.mabena", "dr.mokoena", "nurse.molefe", "admin.ndlovu"]
 
 def main():
-    real_hash = generate_password_hash(SEED_PASSWORD)
     conn = get_connection()
     cursor = conn.cursor()
+
+    # Pre-flight: verify seed rows exist before attempting update
+    cursor.execute(
+        "SELECT COUNT(*) FROM USER_ACCOUNT WHERE username IN ('karabo.mabena','dr.mokoena','nurse.molefe','admin.ndlovu')"
+    )
+    row = cursor.fetchone()
+    if not row or row[0] == 0:
+        print("ERROR: No seed accounts found in USER_ACCOUNT.")
+        print("Run sql/00_RUN_ALL.sql first, then re-run this script.")
+        cursor.close()
+        conn.close()
+        sys.exit(1)
+
+    real_hash = generate_password_hash(SEED_PASSWORD)
     updated = 0
     for username in SEED_USERNAMES:
         cursor.execute(

@@ -38,8 +38,10 @@ CREATE INDEX idx_appt_status
 -- -----------------------------------------------------------------------------
 
 -- Check-in lookup by appointment (foreign key navigation)
-CREATE INDEX idx_queue_appt
-    ON QUEUE_ENTRY (appointment_id);
+-- This column already has an index from the unique constraint on appointment_id.
+-- No separate index is required and creating one would raise ORA-01408.
+--CREATE INDEX idx_queue_appt
+--    ON QUEUE_ENTRY (appointment_id);
 
 -- Live queue board filtered by status (WAITING / IN_PROGRESS)
 CREATE INDEX idx_queue_status
@@ -90,7 +92,6 @@ WHERE  index_name IN (
            'IDX_APPT_PATIENT',
            'IDX_APPT_STAFF',
            'IDX_APPT_STATUS',
-           'IDX_QUEUE_APPT',
            'IDX_QUEUE_STATUS',
            'IDX_MR_PATIENT',
            'IDX_MR_APPT',

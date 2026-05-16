@@ -6,19 +6,37 @@
 -- Database: Oracle SQL Developer (XE or university-provided schema)
 -- =============================================================================
 
--- Drop tables in reverse FK order so re-runs are safe
-DROP TABLE AUDIT_LOG         CASCADE CONSTRAINTS PURGE;
-DROP TABLE NOTIFICATION      CASCADE CONSTRAINTS PURGE;
-DROP TABLE MEDICAL_RECORD    CASCADE CONSTRAINTS PURGE;
-DROP TABLE QUEUE_ENTRY       CASCADE CONSTRAINTS PURGE;
-DROP TABLE APPOINTMENT       CASCADE CONSTRAINTS PURGE;
-DROP TABLE USER_ACCOUNT      CASCADE CONSTRAINTS PURGE;
-DROP TABLE DOCTOR            CASCADE CONSTRAINTS PURGE;
-DROP TABLE PATIENT_CONTACT   CASCADE CONSTRAINTS PURGE;
-DROP TABLE STAFF             CASCADE CONSTRAINTS PURGE;
-DROP TABLE DEPARTMENT        CASCADE CONSTRAINTS PURGE;
-DROP TABLE TIMESLOT          CASCADE CONSTRAINTS PURGE;
-DROP TABLE PATIENT           CASCADE CONSTRAINTS PURGE;
+-- Drop tables in reverse FK order so re-runs are safe.
+-- Ignore missing tables instead of failing on the first run.
+DECLARE
+    TYPE table_list_t IS TABLE OF VARCHAR2(30);
+    tables table_list_t := table_list_t(
+        'AUDIT_LOG',
+        'NOTIFICATION',
+        'MEDICAL_RECORD',
+        'QUEUE_ENTRY',
+        'APPOINTMENT',
+        'USER_ACCOUNT',
+        'DOCTOR',
+        'PATIENT_CONTACT',
+        'STAFF',
+        'DEPARTMENT',
+        'TIMESLOT',
+        'PATIENT'
+    );
+BEGIN
+    FOR i IN 1 .. tables.COUNT LOOP
+        BEGIN
+            EXECUTE IMMEDIATE 'DROP TABLE ' || tables(i) || ' CASCADE CONSTRAINTS PURGE';
+        EXCEPTION
+            WHEN OTHERS THEN
+                IF SQLCODE != -942 THEN
+                    RAISE;
+                END IF;
+        END;
+    END LOOP;
+END;
+/
 
 -- =============================================================================
 -- LEVEL 1 â€” No FK dependencies

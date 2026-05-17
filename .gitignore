@@ -11,6 +11,9 @@ frontend/dist/
 debug-*.log
 .cursor/
 
+# Accidental OneDrive path copies — never commit
+OneDrive/
+
 # S1 private handoff notes — local only, never commit
 cursor-follow-up/
 

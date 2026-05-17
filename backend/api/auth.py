@@ -18,15 +18,18 @@ def login():
 
     try:
         result = auth_service.login(username, password)
+        return success_response(result)
+
     except ValueError as exc:
         code = str(exc)
         if code == "ACCOUNT_DISABLED":
             return error_response("Account is disabled", "ACCOUNT_DISABLED", 401)
         return error_response("Invalid username or password", "INVALID_CREDENTIALS", 401)
-    except Exception:
-        return error_response("Login failed", "SERVER_ERROR", 500)
+    
+    except Exception as e:
+        return error_response(str(e), "SERVER_ERROR", 500)
 
-    return success_response(result)
+    
 
 
 @auth_bp.route("/register/", methods=["POST"])

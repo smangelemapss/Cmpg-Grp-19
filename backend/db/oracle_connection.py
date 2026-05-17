@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    import cx_Oracle as _cx_Oracle
+    import oracledb as _cx_Oracle
     _CX_ORACLE_AVAILABLE = True
 except ImportError:
     _cx_Oracle = None
@@ -17,10 +17,15 @@ def get_connection():
             "cx_Oracle is not installed. Install Oracle Instant Client and cx_Oracle."
         )
     user = os.getenv("ORA_USER", "system")
-    password = os.getenv("ORA_PASSWORD", "")
+    password = os.getenv("ORA_PASSWORD")
     host = os.getenv("ORA_HOST", "localhost")
     port = int(os.getenv("ORA_PORT", "1521"))
-    sid = os.getenv("ORA_SID", "XE")
+    service = os.getenv("ORA_SERVICE", "XEPDB1")
 
-    dsn = _cx_Oracle.makedsn(host, port, sid=sid)
-    return _cx_Oracle.connect(user=user, password=password, dsn=dsn)
+    dsn = _cx_Oracle.makedsn(host, port, service_name=service)
+
+    return _cx_Oracle.connect(
+        user=user,
+        password=password,
+        dsn=dsn
+    )

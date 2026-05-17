@@ -13,40 +13,16 @@ const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
-      {
-        index: true,
-        element: <PatientDashboard />,
-      },
-      {
-        path: 'dashboard',
-        element: <PatientDashboard />,
-      },
-      {
-        path: 'medical-history',
-        element: <MedicalHistory />,
-      },
-      {
-        path: 'emergency-contacts',
-        element: <EmergencyContacts />,
-      },
-      {
-        path: 'appointments',
-        element: <AppointmentHistory />,
-      },
-      {
-        path: 'book-appointment',
-        element: <BookAppointment />,
-      },
-      {
-        path: 'profile',
-        element: <PatientProfile />,
-      },
+      { index: true, element: <PatientDashboard /> },
+      { path: 'dashboard', element: <PatientDashboard /> },
+      { path: 'medical-history', element: <MedicalHistory /> },
+      { path: 'emergency-contacts', element: <EmergencyContacts /> },
+      { path: 'appointments', element: <AppointmentHistory /> },
+      { path: 'book-appointment', element: <BookAppointment /> },
+      { path: 'profile', element: <PatientProfile /> },
     ],
   },
-  {
-    path: '/login',
-    element: <LogInPage />,
-  },
+  { path: '/login', element: <LogInPage /> },
 ]);
 
 export default router;

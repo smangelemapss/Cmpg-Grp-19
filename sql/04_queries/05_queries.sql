@@ -108,9 +108,12 @@ SELECT student_number,
        first_name,
        last_name,
        email
-FROM   PATIENT
-WHERE  ROWNUM <= 5
-ORDER BY student_number;
+FROM (
+    SELECT student_number, first_name, last_name, email
+    FROM   PATIENT
+    ORDER BY student_number
+)
+WHERE  ROWNUM <= 5;
 
 -- Q2.3  Column projection: only 4 columns from STAFF (no sensitive data exposed)
 SELECT first_name,
@@ -179,12 +182,12 @@ ORDER BY priority DESC, booking_type ASC;
    Q4 â€” LIKE, AND, OR OPERATORS  (4 marks)
    ============================================================================ */
 
--- Q4.1  LIKE: patients whose email is an NWU student address
+-- Q4.1  LIKE: patients whose email is an NWU student address (@mynwu.ac.za)
 SELECT student_number,
        first_name || ' ' || last_name    AS patient_name,
        email
 FROM   PATIENT
-WHERE  email LIKE '%@student.nwu.ac.za';
+WHERE  email LIKE '%@mynwu.ac.za';
 
 -- Q4.2  AND: staff who are DOCTORS assigned to department 1
 SELECT staff_id,

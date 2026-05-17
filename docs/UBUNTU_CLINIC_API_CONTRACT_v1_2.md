@@ -7,7 +7,7 @@
 | Field | Value |
 |---|---|
 | **Document ID** | UBUNTU-CBS-API-CONTRACT-v1.2 |
-| **Status** | DRAFT - Pending Backend Review |
+| **Status** | Superseded — see [v1.3](./UBUNTU_CLINIC_API_CONTRACT_v1_3.md) (APPROVED) |
 | **Version** | 1.2.0 - F4 Admin module added; F1-F2-F3-F4 complete |
 | **Date Issued** | 2026-05-14 |
 | **Prepared by** | Frontend Teams F1 - F2 - F3 - F4 |
@@ -94,21 +94,44 @@ All routes use trailing slashes (Flask convention enforced). Token refresh: POST
 **Request body:**
 
 ```jsonc
-{ "username": "string", "email": "string", "password": "string" }
+{
+  "username": "string",       // firstname.lastname (e.g. karabo.mabena)
+  "student_number": "string", // exactly 8 digits (e.g. 48277444)
+  "email": "string",          // {student_number}@mynwu.ac.za (e.g. 48277444@mynwu.ac.za)
+  "password": "string"        // min 8 chars, at least one letter and one number
+}
 ```
+
+**Validation rules (enforced on API and register UI):**
+
+| Field | Rule |
+|---|---|
+| `student_number` | Required, exactly 8 digits |
+| `email` | Required, must match `{student_number}@mynwu.ac.za` |
+| `username` | Required, must contain `.` (firstname.lastname) |
+| `password` | Min 8 characters, at least one letter and one digit |
 
 **Response body:**
 
 ```jsonc
-{ "message": "string", "user": { "id": int, "username": "string", "email": "string", "role": "PATIENT" } }
+{
+  "message": "string",
+  "user": {
+    "id": int,
+    "username": "string",
+    "email": "string",
+    "role": "PATIENT",
+    "student_number": "string"
+  }
+}
 ```
 
 **Error codes:**
 
 | Code | Meaning |
 |---|---|
-| `400` | Field validation errors |
-| `409` | Username or email already exists |
+| `400` | Field validation errors (`STUDENT_NUMBER_INVALID`, `EMAIL_INVALID`, `PASSWORD_WEAK`, etc.) |
+| `409` | Username, student number, or email already exists |
 
 #### `POST /api/v1/auth/logout/`
 

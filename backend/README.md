@@ -11,7 +11,8 @@ Flask REST API backed by Oracle XE 21c.
 |---|---|---|
 | Python | 3.10+ | `python --version` to verify |
 | Oracle Database XE | 21c | Must be running locally on port 1521 |
-| Oracle Instant Client | 21.x | Required by `cx_Oracle`; must be on `PATH` / `LD_LIBRARY_PATH` |
+| `oracledb` (thin mode) | 2.x | Included in `requirements.txt` — **no Oracle Instant Client required** |
+| Oracle Instant Client | 21.x | Only if using optional `cx_Oracle` thick mode |
 | pip | latest | Bundled with Python 3.10+ |
 
 ---
@@ -23,14 +24,20 @@ Flask REST API backed by Oracle XE 21c.
 ```bash
 pip install -r requirements.txt
 pytest -q
-# Expected: 81 passed
+# Expected: 83 passed
 ```
 
 ### For running the live server (Oracle XE required)
 
 ```bash
 pip install -r requirements.txt
-pip install -r requirements-oracle.txt   # only after Oracle Instant Client is installed
+python scripts/check_db.py   # must print [OK] before starting the API
+```
+
+Optional thick-mode driver (only if you prefer `cx_Oracle` + Instant Client):
+
+```bash
+pip install -r requirements-oracle.txt
 ```
 
 For Oracle XE Docker setup (database + Instant Client), see **Run the Database Schema** below
@@ -77,12 +84,24 @@ python scripts/reset_seed_passwords.py
 
 ## Start the Server
 
+### Development
+
 ```bash
 # From the backend/ folder
 python app.py
 ```
 
 The API starts on **http://localhost:8000**.
+
+### Production (WSGI)
+
+Set `FLASK_ENV=production` and a strong `JWT_SECRET` in `.env`, then:
+
+```bash
+gunicorn -w 4 -b 0.0.0.0:8000 "app:app"
+```
+
+Update `CORS_ORIGINS` to your deployed frontend URL before going live.
 
 ---
 
@@ -93,7 +112,22 @@ The API starts on **http://localhost:8000**.
 pytest
 ```
 
-Expected result: **81 passed**.
+Expected result: **83 passed**.
+
+### Deploy readiness (run phases in order)
+
+```bash
+# All phases: database -> backend -> frontend -> full connection
+python scripts/verify_deploy_ready.py
+
+# Or one phase at a time:
+python scripts/verify_database.py --fix-passwords
+python scripts/verify_backend.py
+python scripts/verify_frontend.py
+python scripts/verify_full_stack.py
+```
+
+Use `--http` on the full-stack or master script when the Flask server is already running.
 
 Tests use an in-memory Oracle mock — no live Oracle Client is needed for CI (see [Oracle Mock Strategy](#oracle-mock-strategy-for-ci)).
 
@@ -156,7 +190,7 @@ After running `scripts/reset_seed_passwords.py`, the following accounts are avai
 
 | Username | Role | Password |
 |---|---|---|
-| `karabo.mabena` | PATIENT | `Clinic@123` |
+| `karabo.mabena` | PATIENT | `Clinic@123` (student `10012345`, email `10012345@mynwu.ac.za`, 1 past + 1 upcoming appointment) |
 | `dr.mokoena` | DOCTOR | `Clinic@123` |
 | `nurse.molefe` | NURSE | `Clinic@123` |
 | `admin.ndlovu` | ADMIN | `Clinic@123` |

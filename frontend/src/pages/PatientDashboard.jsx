@@ -1,131 +1,143 @@
 import { useState, useEffect } from 'react'
-import { getPatientDashboard } from '../services/api'
+import { Link } from 'react-router-dom'
+import {
+  Calendar,
+  History,
+  FlaskConical,
+  CalendarX,
+  CalendarPlus,
+  FileText,
+  Phone,
+  LayoutDashboard,
+} from 'lucide-react'
+import { getPatientDashboard, getPendingResults } from '../services/api'
+import PageHeader from '../components/ui/PageHeader'
+import PageLoading from '../components/ui/PageLoading'
+import StatCard from '../components/ui/StatCard'
+import EmptyState from '../components/ui/EmptyState'
 
 const PatientDashboard = () => {
   const [dashboard, setDashboard] = useState({
     upcomingCount: 0,
     pastVisitsCount: 0,
     pendingResultsCount: 0,
-    cancelledCount: 0
+    cancelledCount: 0,
   })
+  const [pendingResults, setPendingResults] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadDashboard()
+    Promise.all([getPatientDashboard(), getPendingResults()])
+      .then(([dash, pending]) => {
+        setDashboard(dash)
+        setPendingResults(Array.isArray(pending) ? pending : [])
+      })
+      .catch((err) => console.error('Error loading dashboard:', err))
+      .finally(() => setLoading(false))
   }, [])
 
-  const loadDashboard = async () => {
-    try {
-      const data = await getPatientDashboard()
-      setDashboard(data)
-    } catch (error) {
-      console.error('Error loading dashboard:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   if (loading) {
-    return <div style={styles.loading}>Loading dashboard...</div>
+    return <PageLoading message="Loading dashboard..." />
   }
 
   return (
     <div>
-      <h1 style={styles.pageTitle}>Patient Dashboard</h1>
-      <p style={styles.welcome}>Welcome back! Here's your health summary.</p>
-      
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <h3 style={styles.statNumber}>{dashboard.upcomingCount}</h3>
-          <p style={styles.statLabel}>Upcoming Appointments</p>
-        </div>
-        
-        <div style={styles.statCard}>
-          <h3 style={styles.statNumber}>{dashboard.pastVisitsCount}</h3>
-          <p style={styles.statLabel}>Past Visits</p>
-        </div>
-        
-        <div style={styles.statCard}>
-          <h3 style={styles.statNumber}>{dashboard.pendingResultsCount}</h3>
-          <p style={styles.statLabel}>Pending Results</p>
-        </div>
-        
-        <div style={styles.statCard}>
-          <h3 style={styles.statNumber}>{dashboard.cancelledCount}</h3>
-          <p style={styles.statLabel}>Cancelled Appointments</p>
-        </div>
+      <PageHeader
+        eyebrow="Patient portal"
+        icon={LayoutDashboard}
+        title="Your health dashboard"
+        subtitle="Overview of appointments, visits, and pending results — everything in one place."
+      />
+
+      <div className="stats-grid">
+        <StatCard
+          icon={Calendar}
+          value={dashboard.upcomingCount}
+          label="Upcoming Appointments"
+          tone="teal"
+        />
+        <StatCard
+          icon={History}
+          value={dashboard.pastVisitsCount}
+          label="Past Visits"
+          tone="blue"
+        />
+        <StatCard
+          icon={FlaskConical}
+          value={dashboard.pendingResultsCount}
+          label="Pending Results"
+          tone="amber"
+        />
+        <StatCard
+          icon={CalendarX}
+          value={dashboard.cancelledCount}
+          label="Cancelled Appointments"
+          tone="rose"
+        />
       </div>
-      
-      <div style={styles.quickActions}>
-        <h2>Quick Actions</h2>
-        <div style={styles.actionButtons}>
-          <button style={styles.actionBtn} onClick={() => window.location.href = '/book-appointment'}>
-            Book Appointment
-          </button>
-          <button style={styles.actionBtn} onClick={() => window.location.href = '/medical-history'}>
-            View Medical History
-          </button>
-          <button style={styles.actionBtn} onClick={() => window.location.href = '/emergency-contacts'}>
-            Emergency Contacts
-          </button>
+
+      {pendingResults.length > 0 && (
+        <section className="card card--elevated" style={{ marginBottom: '1.5rem' }}>
+          <h2 className="section-title">Pending results</h2>
+          <ul className="staff-notifications">
+            {pendingResults.map((item) => (
+              <li key={item.id} className="staff-notif">
+                <div>
+                  <strong>{item.test || 'Lab result'}</strong>
+                  <p>
+                    {item.date} · {item.status || 'Pending'}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card card--elevated">
+        <h2 className="section-title">Quick Actions</h2>
+        <p className="page-subtitle" style={{ marginBottom: '1rem' }}>
+          Jump to the tasks you use most often.
+        </p>
+        <div className="action-tiles">
+          <Link to="/book-appointment" className="action-tile">
+            <div className="action-tile__icon action-tile__icon--primary">
+              <CalendarPlus size={22} />
+            </div>
+            <div>
+              <div className="action-tile__label">Book Appointment</div>
+              <div className="action-tile__hint">Schedule your next visit</div>
+            </div>
+          </Link>
+          <Link to="/medical-history" className="action-tile">
+            <div className="action-tile__icon action-tile__icon--secondary">
+              <FileText size={22} />
+            </div>
+            <div>
+              <div className="action-tile__label">Medical History</div>
+              <div className="action-tile__hint">Records & diagnoses</div>
+            </div>
+          </Link>
+          <Link to="/emergency-contacts" className="action-tile">
+            <div className="action-tile__icon action-tile__icon--danger">
+              <Phone size={22} />
+            </div>
+            <div>
+              <div className="action-tile__label">Emergency Contacts</div>
+              <div className="action-tile__hint">Manage trusted contacts</div>
+            </div>
+          </Link>
         </div>
-      </div>
+      </section>
+
+      {pendingResults.length === 0 && dashboard.pendingResultsCount > 0 && (
+        <EmptyState
+          title="Pending results on file"
+          description="You have pending results — details will appear when loaded from the server."
+        />
+      )}
     </div>
   )
-}
-
-const styles = {
-  pageTitle: {
-    fontSize: '28px',
-    marginBottom: '10px',
-  },
-  welcome: {
-    color: '#666',
-    marginBottom: '30px',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '20px',
-    marginBottom: '40px',
-  },
-  statCard: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    textAlign: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  },
-  statNumber: {
-    fontSize: '36px',
-    color: '#007bff',
-    marginBottom: '10px',
-  },
-  statLabel: {
-    color: '#666',
-    fontSize: '14px',
-  },
-  quickActions: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '15px',
-    marginTop: '15px',
-    flexWrap: 'wrap',
-  },
-  actionBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
 }
 
 export default PatientDashboard

@@ -54,17 +54,23 @@ def book_appointment():
         if msg.startswith("MISSING_FIELD:"):
             field = msg.split(":")[1]
             return error_response(f"Field '{field}' is required", "VALIDATION_ERROR", 400)
+        if "SLOT_UNAVAILABLE" in msg:
+            return error_response("Slot already booked", "SLOT_UNAVAILABLE", 409)
+        if msg == "INVALID_DATE":
+            return error_response("Date must be YYYY-MM-DD", "VALIDATION_ERROR", 400)
+        if msg == "INVALID_DOCTOR":
+            return error_response("Doctor not found", "NOT_FOUND", 404)
         return error_response(msg, "VALIDATION_ERROR", 400)
     except LookupError:
         return error_response("No available slot found for the given time", "NO_SLOT_FOUND", 404)
-    except ValueError as exc:
-        if "SLOT_UNAVAILABLE" in str(exc):
-            return error_response("Slot already booked", "SLOT_UNAVAILABLE", 409)
-        return error_response(str(exc), "VALIDATION_ERROR", 400)
     except Exception as exc:
         if "SLOT_UNAVAILABLE" in str(exc):
             return error_response("Slot already booked", "SLOT_UNAVAILABLE", 409)
         return error_response("Failed to book appointment", "SERVER_ERROR", 500)
+
+    from utils.audit_helper import log_audit
+
+    log_audit(g.user_id, "BOOK_APPOINTMENT", "APPOINTMENT", result.get("id"))
     return success_response(result, 201)
 
 
@@ -76,6 +82,32 @@ def list_doctors():
     except Exception:
         return error_response("Unable to load doctors", "SERVER_ERROR", 500)
     return success_response(data)
+
+
+@appointments_bp.route("/appointments/<int:appointment_id>/cancel/", methods=["PATCH"])
+@require_auth(roles=["PATIENT"])
+def cancel_appointment(appointment_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        result = appointment_service.cancel_appointment(
+            g.user_id, appointment_id, data.get("cancellation_reason")
+        )
+    except ValueError as exc:
+        if str(exc) == "PATIENT_NOT_FOUND":
+            return error_response("Patient profile not found", "NOT_FOUND", 404)
+        if str(exc) == "ALREADY_FINALIZED":
+            return error_response("Appointment cannot be cancelled", "INVALID_STATUS", 409)
+        return error_response(str(exc), "VALIDATION_ERROR", 400)
+    except Exception:
+        return error_response("Failed to cancel appointment", "SERVER_ERROR", 500)
+
+    if result is None:
+        return error_response("Appointment not found", "NOT_FOUND", 404)
+
+    from utils.audit_helper import log_audit
+
+    log_audit(g.user_id, "CANCEL_APPOINTMENT", "APPOINTMENT", appointment_id)
+    return success_response(result)
 
 
 @appointments_bp.route("/timeslots/", methods=["GET"])

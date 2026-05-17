@@ -55,28 +55,28 @@ INSERT INTO DOCTOR (staff_id, license_number, specialisation) VALUES (3, 'HPCSA-
 -- PATIENT â€” 8 rows (realistic NWU student data)
 -- =============================================================================
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10012345', 'Karabo',      'Mabena',   '10012345@student.nwu.ac.za', '0781234567', DATE '2002-03-12', '12 Steve Biko Drive',     'Potchefstroom',  '2531', 1);
+VALUES ('10012345', 'Karabo',      'Mabena',   '10012345@mynwu.ac.za', '0781234567', DATE '2002-03-12', '12 Steve Biko Drive',     'Potchefstroom',  '2531', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10023456', 'Boitumelo',   'Maseko',   '10023456@student.nwu.ac.za', '0782345678', DATE '2001-07-24', '45 Albert Luthuli Avenue', 'Mahikeng',       '2745', 1);
+VALUES ('10023456', 'Boitumelo',   'Maseko',   '10023456@mynwu.ac.za', '0782345678', DATE '2001-07-24', '45 Albert Luthuli Avenue', 'Mahikeng',       '2745', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10034567', 'Minenhle',    'Nkosi',    '10034567@student.nwu.ac.za', '0783456789', DATE '2003-01-05', '8 Nelson Mandela Drive',   'Vanderbijlpark', '1900', 1);
+VALUES ('10034567', 'Minenhle',    'Nkosi',    '10034567@mynwu.ac.za', '0783456789', DATE '2003-01-05', '8 Nelson Mandela Drive',   'Vanderbijlpark', '1900', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10045678', 'Tshegofatso', 'Radebe',   '10045678@student.nwu.ac.za', '0784567890', DATE '2000-11-18', '21 Beyers Naude Avenue',   'Potchefstroom',  '2531', 1);
+VALUES ('10045678', 'Tshegofatso', 'Radebe',   '10045678@mynwu.ac.za', '0784567890', DATE '2000-11-18', '21 Beyers Naude Avenue',   'Potchefstroom',  '2531', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10056789', 'Anathi',      'Mthembu',  '10056789@student.nwu.ac.za', '0785678901', DATE '2002-09-02', '6 University Road',        'Mahikeng',       '2745', 1);
+VALUES ('10056789', 'Anathi',      'Mthembu',  '10056789@mynwu.ac.za', '0785678901', DATE '2002-09-02', '6 University Road',        'Mahikeng',       '2745', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10067890', 'Lehlohonolo', 'Sithole',  '10067890@student.nwu.ac.za', '0786789012', DATE '2001-04-16', '33 Pitso Street',          'Mahikeng',       '2745', 0);
+VALUES ('10067890', 'Lehlohonolo', 'Sithole',  '10067890@mynwu.ac.za', '0786789012', DATE '2001-04-16', '33 Pitso Street',          'Mahikeng',       '2745', 0);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10078901', 'Zanele',      'Dube',     '10078901@student.nwu.ac.za', '0787890123', DATE '2003-06-28', '19 Freedom Square',        'Potchefstroom',  '2531', 1);
+VALUES ('10078901', 'Zanele',      'Dube',     '10078901@mynwu.ac.za', '0787890123', DATE '2003-06-28', '19 Freedom Square',        'Potchefstroom',  '2531', 1);
 
 INSERT INTO PATIENT (student_number, first_name, last_name, email, contact_number, date_of_birth, street, city, postal_code, consent_given)
-VALUES ('10089012', 'Sibusiso',    'Zwane',    '10089012@student.nwu.ac.za', '0788901234', DATE '2000-12-03', '7 Tlokwe Avenue',          'Vanderbijlpark', '1900', 1);
+VALUES ('10089012', 'Sibusiso',    'Zwane',    '10089012@mynwu.ac.za', '0788901234', DATE '2000-12-03', '7 Tlokwe Avenue',          'Vanderbijlpark', '1900', 1);
 
 -- =============================================================================
 -- PATIENT_CONTACT â€” 8 rows (one next-of-kin per patient)
@@ -167,6 +167,12 @@ VALUES (7, 7, 1, 'SCHEDULED',  'FOLLOW_UP',      'NORMAL', 'a1b2c3d4-0007-0007-0
 INSERT INTO APPOINTMENT (slot_id, patient_id, staff_id, status, booking_type, priority, qr_code_token)
 VALUES (9, 8, 2, 'SCHEDULED',  'VIRTUAL_TRIAGE', 'NORMAL', 'a1b2c3d4-0008-0008-0008-aabbccdd0008');
 
+-- karabo.mabena (patient_id=1): upcoming follow-up with Dr Mokoena (slot 8, tomorrow 10:00)
+INSERT INTO APPOINTMENT (slot_id, patient_id, staff_id, status, booking_type, priority, qr_code_token)
+VALUES (8, 1, 1, 'SCHEDULED', 'FOLLOW_UP', 'NORMAL', 'a1b2c3d4-karabo-upcoming-0001');
+
+UPDATE TIMESLOT SET is_available = 0 WHERE slot_id = 8;
+
 -- =============================================================================
 -- QUEUE_ENTRY â€” 3 rows (one per completed appointment)
 -- =============================================================================
@@ -226,6 +232,11 @@ INSERT INTO NOTIFICATION (patient_id, staff_id, appointment_id, channel, status,
 VALUES (8, NULL, 8, 'SMS', 'PENDING',
     'Ubuntu Clinic: Appt confirmed for ' || TO_CHAR(TRUNC(SYSDATE) + 2, 'DD Mon YYYY') || ' at 08:30. Reply CANCEL to cancel.');
 
+INSERT INTO NOTIFICATION (patient_id, staff_id, appointment_id, channel, status, message)
+VALUES (1, NULL, 9, 'EMAIL', 'PENDING',
+    'Reminder: Your follow-up at Ubuntu Clinic is scheduled for '
+    || TO_CHAR(TRUNC(SYSDATE) + 1, 'DD Mon YYYY') || ' at 10:00 with Dr Mokoena.');
+
 -- =============================================================================
 -- AUDIT_LOG â€” 10 rows (realistic action history by admin and doctors)
 -- user_id references: 9=doctor_mokoena, 10=doctor_dlamini, 11=doctor_patel, 12=admin_ndlovu
@@ -263,7 +274,7 @@ COMMIT;
 -- werkzeug-compatible password hashes (replaces the 'CHANGEME' placeholder).
 -- =============================================================================
 
--- Patient account linked to patient_id=1 (Karabo Mabena, student 10012345)
+-- Patient account linked to patient_id=1 (Karabo Mabena, student 10012345, 10012345@mynwu.ac.za)
 INSERT INTO USER_ACCOUNT (username, password_hash, patient_id, staff_id, role, status)
 VALUES ('karabo.mabena', 'CHANGEME', 1, NULL, 'PATIENT', 'ACTIVE');
 
@@ -291,7 +302,7 @@ SELECT 'PATIENT',                      COUNT(*)              FROM PATIENT       
 SELECT 'PATIENT_CONTACT',              COUNT(*)              FROM PATIENT_CONTACT UNION ALL
 SELECT 'USER_ACCOUNT',                 COUNT(*)              FROM USER_ACCOUNT    UNION ALL
 SELECT 'TIMESLOT',                     COUNT(*)              FROM TIMESLOT        UNION ALL
-SELECT 'APPOINTMENT',                  COUNT(*)              FROM APPOINTMENT     UNION ALL
+SELECT 'APPOINTMENT',                  COUNT(*)              FROM APPOINTMENT     UNION ALL  -- expect 9 after karabo upcoming row
 SELECT 'QUEUE_ENTRY',                  COUNT(*)              FROM QUEUE_ENTRY     UNION ALL
 SELECT 'MEDICAL_RECORD',              COUNT(*)              FROM MEDICAL_RECORD  UNION ALL
 SELECT 'NOTIFICATION',                COUNT(*)              FROM NOTIFICATION    UNION ALL

@@ -67,6 +67,23 @@ CREATE INDEX idx_mr_appt
 CREATE INDEX idx_notif_appt
     ON NOTIFICATION (appointment_id);
 
+-- Inbox queries by recipient (patient/staff notification lists)
+CREATE INDEX idx_notif_patient
+    ON NOTIFICATION (patient_id);
+
+CREATE INDEX idx_notif_staff
+    ON NOTIFICATION (staff_id);
+
+-- -----------------------------------------------------------------------------
+-- USER_ACCOUNT indexes
+-- Join from USER_ACCOUNT to PATIENT for profile and notification routing
+-- -----------------------------------------------------------------------------
+CREATE INDEX idx_user_patient
+    ON USER_ACCOUNT (patient_id);
+
+CREATE INDEX idx_user_staff
+    ON USER_ACCOUNT (staff_id);
+
 -- -----------------------------------------------------------------------------
 -- AUDIT_LOG indexes
 -- -----------------------------------------------------------------------------
@@ -96,6 +113,10 @@ WHERE  index_name IN (
            'IDX_MR_PATIENT',
            'IDX_MR_APPT',
            'IDX_NOTIF_APPT',
+           'IDX_NOTIF_PATIENT',
+           'IDX_NOTIF_STAFF',
+           'IDX_USER_PATIENT',
+           'IDX_USER_STAFF',
            'IDX_AUDIT_TIMESTAMP',
            'IDX_AUDIT_USER'
        )

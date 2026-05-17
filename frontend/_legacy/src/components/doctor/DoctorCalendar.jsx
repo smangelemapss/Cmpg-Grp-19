@@ -18,7 +18,7 @@ const DoctorCalendar = ({ appointments, doctorId, onRefresh }) => {
 
     return {
       id: appt.id,
-      title: `${appt.doctor} - ${appt.type === 'virtual' ? '💻 Virtual' : '🏥 In-person'}`,
+      title: `${appt.doctor} - ${appt.type === 'virtual' ? 'Virtual' : 'In-person'}`,
       start: startDate,
       end: endDate,
       patientName: appt.patient_name,

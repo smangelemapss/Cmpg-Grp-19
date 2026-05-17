@@ -128,6 +128,24 @@ def get_available_timeslots(date_str, doctor_id=None):
     return rows
 
 
+def get_appointment_by_id(appointment_id):
+    """Returns (patient_id, staff_id, status) or None."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT patient_id, staff_id, status
+        FROM APPOINTMENT
+        WHERE appointment_id = :1
+        """,
+        [appointment_id],
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
+
+
 def book_appointment(patient_id, staff_id, slot_id, reason, booking_type, qr_token):
     """
     Implements SELECT FOR UPDATE pattern.
@@ -144,6 +162,16 @@ def book_appointment(patient_id, staff_id, slot_id, reason, booking_type, qr_tok
         )
         row = cursor.fetchone()
         if not row or row[0] != 1:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            raise ValueError("SLOT_UNAVAILABLE")
+
+        cursor.execute(
+            "SELECT appointment_id FROM APPOINTMENT WHERE slot_id = :1",
+            [slot_id],
+        )
+        if cursor.fetchone():
             conn.rollback()
             cursor.close()
             conn.close()
@@ -209,6 +237,46 @@ def get_appointments_by_doctor_count():
     cursor.close()
     conn.close()
     return rows
+
+
+def cancel_appointment(patient_id, appointment_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT a.appointment_id, a.slot_id, a.status
+            FROM APPOINTMENT a
+            WHERE a.appointment_id = :1 AND a.patient_id = :2
+            FOR UPDATE
+            """,
+            [appointment_id, patient_id],
+        )
+        row = cursor.fetchone()
+        if not row:
+            conn.rollback()
+            return None
+        _, slot_id, status = row
+        if status in ("COMPLETED", "CANCELLED", "NO_SHOW"):
+            conn.rollback()
+            return False
+
+        cursor.execute(
+            "UPDATE APPOINTMENT SET status = 'CANCELLED' WHERE appointment_id = :1",
+            [appointment_id],
+        )
+        cursor.execute(
+            "UPDATE TIMESLOT SET is_available = 1 WHERE slot_id = :1",
+            [slot_id],
+        )
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_daily_appointment_counts(days=30):

@@ -19,6 +19,7 @@ SEED_PASSWORD = "Clinic@123"
 SEED_USERNAMES = ["karabo.mabena", "dr.mokoena", "nurse.molefe", "admin.ndlovu"]
 
 def main():
+    force = "--force" in sys.argv
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -37,10 +38,16 @@ def main():
     real_hash = generate_password_hash(SEED_PASSWORD)
     updated = 0
     for username in SEED_USERNAMES:
-        cursor.execute(
-            "UPDATE USER_ACCOUNT SET password_hash = :1 WHERE username = :2 AND password_hash = 'CHANGEME'",
-            [real_hash, username],
-        )
+        if force:
+            cursor.execute(
+                "UPDATE USER_ACCOUNT SET password_hash = :1 WHERE username = :2",
+                [real_hash, username],
+            )
+        else:
+            cursor.execute(
+                "UPDATE USER_ACCOUNT SET password_hash = :1 WHERE username = :2 AND password_hash = 'CHANGEME'",
+                [real_hash, username],
+            )
         if cursor.rowcount:
             print(f"  [OK] {username}")
             updated += cursor.rowcount

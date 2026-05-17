@@ -1,11 +1,22 @@
+import re
+import time
 import uuid
 
 import db.appointment_repo as appointment_repo
 import db.doctor_repo as doctor_repo
 import db.patient_repo as patient_repo
 
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+_DOCTORS_CACHE = {"data": None, "expires_at": 0.0}
+_DOCTORS_CACHE_TTL_SEC = 120
+
 _BOOKING_TYPE_MAP = {
     "virtual": "VIRTUAL_TRIAGE",
+    "online": "VIRTUAL_TRIAGE",
+    "in-person": "SICK",
+    "in_person": "SICK",
+    "sick": "SICK",
     "follow-up": "FOLLOW_UP",
     "follow_up": "FOLLOW_UP",
     "walk-in": "WALK_IN",
@@ -77,7 +88,13 @@ def book_appointment(user_id, data):
 
     patient_id = _get_patient_id(user_id)
     doctor_id = int(data["doctor_id"])
-    date_str = data["date"]
+    date_str = str(data["date"]).strip()
+    if not _DATE_RE.match(date_str):
+        raise ValueError("INVALID_DATE")
+
+    if not doctor_repo.get_doctor_by_id(doctor_id):
+        raise ValueError("INVALID_DOCTOR")
+
     time_slot = data["time_slot"]
     booking_type_raw = data.get("type", "in-person").lower()
     booking_type = _BOOKING_TYPE_MAP.get(booking_type_raw, "SICK")
@@ -131,9 +148,27 @@ def get_available_slots(date_str, doctor_id=None):
     ]
 
 
+def cancel_appointment(user_id, appointment_id, reason=None):
+    patient_id = _get_patient_id(user_id)
+    result = appointment_repo.cancel_appointment(patient_id, appointment_id)
+    if result is None:
+        return None
+    if result is False:
+        raise ValueError("ALREADY_FINALIZED")
+    return {
+        "id": appointment_id,
+        "status": "cancelled",
+        "cancellation_reason": reason or "",
+    }
+
+
 def get_all_doctors():
+    now = time.time()
+    if _DOCTORS_CACHE["data"] is not None and now < _DOCTORS_CACHE["expires_at"]:
+        return _DOCTORS_CACHE["data"]
+
     rows = doctor_repo.get_all_doctors()
-    return [
+    result = [
         {
             "id": r[0],
             "name": r[1],
@@ -142,3 +177,6 @@ def get_all_doctors():
         }
         for r in rows
     ]
+    _DOCTORS_CACHE["data"] = result
+    _DOCTORS_CACHE["expires_at"] = now + _DOCTORS_CACHE_TTL_SEC
+    return result

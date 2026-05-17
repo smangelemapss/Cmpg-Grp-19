@@ -1,6 +1,6 @@
-from flask import Blueprint, g, request
+from flask import Blueprint, g
 
-import db.notification_repo as notification_repo
+import services.notification_service as notification_service
 from utils.error_handler import error_response, success_response
 from utils.jwt_helper import require_auth
 
@@ -11,7 +11,7 @@ notifications_bp = Blueprint("notifications", __name__, url_prefix="/api/v1")
 @require_auth()
 def list_notifications():
     try:
-        data = notification_repo.get_notifications_for_user(g.user_id)
+        data = notification_service.get_notifications_for_user(g.user_id)
     except Exception:
         return error_response("Unable to load notifications", "SERVER_ERROR", 500)
     return success_response(data)
@@ -21,7 +21,7 @@ def list_notifications():
 @require_auth()
 def mark_read(notif_id):
     try:
-        found = notification_repo.mark_notification_read(notif_id, g.user_id)
+        found = notification_service.mark_notification_read(notif_id, g.user_id)
     except Exception:
         return error_response("Failed to mark notification as read", "SERVER_ERROR", 500)
 
@@ -34,7 +34,7 @@ def mark_read(notif_id):
 @require_auth()
 def mark_all_read():
     try:
-        updated_count = notification_repo.mark_all_notifications_read(g.user_id)
+        updated_count = notification_service.mark_all_read(g.user_id)
     except Exception:
         return error_response("Failed to mark all notifications as read", "SERVER_ERROR", 500)
     return success_response({"message": "All notifications marked as read", "updated_count": updated_count})
@@ -44,7 +44,7 @@ def mark_all_read():
 @require_auth(roles=["ADMIN"])
 def delete_notification(notif_id):
     try:
-        found = notification_repo.delete_notification(notif_id)
+        found = notification_service.delete_notification(notif_id)
     except Exception:
         return error_response("Failed to delete notification", "SERVER_ERROR", 500)
 

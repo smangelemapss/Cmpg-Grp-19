@@ -50,8 +50,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies (no cx_Oracle needed — tests are mocked)
-        run: pip install flask flask-cors pyjwt qrcode pillow python-dotenv werkzeug pytest
+      - name: Install dependencies (Oracle mocked in tests)
+        run: pip install -r requirements.txt
 
       - name: Run pytest
         env:
@@ -63,3 +63,25 @@ jobs:
           JWT_SECRET: ci-test-secret
           FLASK_ENV: development
         run: pytest -q
+
+  api-routes:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify frontend api.js matches Flask routes
+        working-directory: backend
+        env:
+          ORA_USER: system
+          ORA_PASSWORD: dummy
+          ORA_HOST: localhost
+          ORA_PORT: "1521"
+          ORA_SID: XE
+          JWT_SECRET: ci-test-secret
+          FLASK_ENV: development
+        run: |
+          pip install -r requirements.txt -q
+          python scripts/verify_api_routes.py

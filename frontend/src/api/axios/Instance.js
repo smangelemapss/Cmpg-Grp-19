@@ -1,7 +1,18 @@
 import axios from 'axios'
 
+/** Empty VITE_API_URL = same-origin (complete website on one port). */
+function resolveApiBase() {
+  const raw = import.meta.env.VITE_API_URL
+  if (raw !== undefined && raw !== '') {
+    return raw
+  }
+  return import.meta.env.DEV ? 'http://localhost:8000' : ''
+}
+
+const API_BASE = resolveApiBase()
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: API_BASE,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -29,7 +40,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true
       try {
         const refreshToken = localStorage.getItem('refresh_token')
-        const response = await axios.post('http://localhost:8000/api/token/refresh/', {
+        const response = await axios.post(`${API_BASE}/api/v1/auth/token/refresh/`, {
           refresh: refreshToken,
         })
         localStorage.setItem('access_token', response.data.access)
@@ -38,7 +49,11 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError) {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
+        const path = window.location.pathname
+        const publicPaths = ['/login', '/staff/login', '/register', '/']
+        if (!publicPaths.includes(path)) {
+          window.location.href = path.startsWith('/staff') ? '/staff/login' : '/login'
+        }
         return Promise.reject(refreshError)
       }
     }

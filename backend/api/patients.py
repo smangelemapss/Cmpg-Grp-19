@@ -7,6 +7,39 @@ from utils.jwt_helper import require_auth
 patients_bp = Blueprint("patients", __name__, url_prefix="/api/v1")
 
 
+@patients_bp.route("/patient/profile/", methods=["GET"])
+@require_auth(roles=["PATIENT"])
+def patient_profile():
+    try:
+        data = patient_service.get_profile(g.user_id)
+    except ValueError:
+        return error_response("Patient profile not found", "NOT_FOUND", 404)
+    except Exception:
+        return error_response("Failed to load profile", "SERVER_ERROR", 500)
+    return success_response(data)
+
+
+@patients_bp.route("/patient/profile/", methods=["PATCH"])
+@require_auth(roles=["PATIENT"])
+def update_patient_profile():
+    data = request.get_json(silent=True) or {}
+    try:
+        profile = patient_service.update_profile(g.user_id, data)
+    except ValueError as exc:
+        if str(exc) == "PATIENT_NOT_FOUND":
+            return error_response("Patient profile not found", "NOT_FOUND", 404)
+        if str(exc) == "NO_FIELDS":
+            return error_response("No updatable fields provided", "VALIDATION_ERROR", 400)
+        return error_response(str(exc), "VALIDATION_ERROR", 400)
+    except Exception:
+        return error_response("Failed to update profile", "SERVER_ERROR", 500)
+
+    from utils.audit_helper import log_audit
+
+    log_audit(g.user_id, "UPDATE_PROFILE", "PATIENT", profile.get("patient_id"))
+    return success_response(profile)
+
+
 @patients_bp.route("/patient/dashboard/", methods=["GET"])
 @require_auth(roles=["PATIENT"])
 def dashboard():

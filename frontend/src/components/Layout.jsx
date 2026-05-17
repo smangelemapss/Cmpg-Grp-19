@@ -1,33 +1,46 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  FileText,
+  Phone,
+  Calendar,
+  CalendarPlus,
+  User,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import './Layout.css'
+import PortalHeader from './PortalHeader'
+import '../styles/portal-shell.css'
+
+const NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/medical-history', label: 'History', icon: FileText },
+  { to: '/emergency-contacts', label: 'Contacts', icon: Phone },
+  { to: '/appointments', label: 'Appointments', icon: Calendar },
+  { to: '/book-appointment', label: 'Book', icon: CalendarPlus },
+  { to: '/profile', label: 'Profile', icon: User },
+]
 
 const Layout = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
+  const userLabel = user?.username ? `Patient · ${user.username}` : 'Patient portal'
+
   return (
-    <div className="layout">
-      <nav className="navbar">
-        <div className="nav-brand">
-          <Link to="/dashboard">CBS Clinic</Link>
-        </div>
-        <div className="nav-links">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/medical-history">Medical History</Link>
-          <Link to="/emergency-contacts">Emergency Contacts</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/book-appointment">Book Appointment</Link>
-          <Link to="/profile">Profile</Link>
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
-        </div>
-      </nav>
-      <main className="main-content">
+    <div className="portal-shell layout">
+      <div className="portal-shell__bg" aria-hidden="true" />
+      <PortalHeader
+        brandTo="/dashboard"
+        navItems={NAV_ITEMS}
+        userLabel={userLabel}
+        onLogout={handleLogout}
+      />
+      <main className="portal-main">
         <div className="container">
           <Outlet />
         </div>

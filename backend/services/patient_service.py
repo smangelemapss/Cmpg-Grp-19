@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import qrcode
 
 import db.patient_repo as patient_repo
+from utils.registration_validation import validate_nwu_email
 
 
 def _get_patient_id(user_id):
@@ -12,6 +13,72 @@ def _get_patient_id(user_id):
     if not row:
         raise ValueError("PATIENT_NOT_FOUND")
     return row[0]
+
+
+def update_profile(user_id, data):
+    patient_id = _get_patient_id(user_id)
+    payload = {}
+    if "first_name" in data:
+        payload["first_name"] = data["first_name"]
+    if "last_name" in data:
+        payload["last_name"] = data["last_name"]
+    if "email" in data:
+        row = patient_repo.get_patient_by_user_id(user_id)
+        if not row:
+            raise ValueError("PATIENT_NOT_FOUND")
+        student_number = row[1]
+        err = validate_nwu_email(data["email"], student_number)
+        if err:
+            raise ValueError(err)
+        payload["email"] = data["email"].strip().lower()
+    if "phone" in data:
+        payload["phone"] = data["phone"]
+    if "date_of_birth" in data:
+        payload["date_of_birth"] = data["date_of_birth"]
+    if "street" in data:
+        payload["street"] = data["street"]
+    if "city" in data:
+        payload["city"] = data["city"]
+    if "postal_code" in data:
+        payload["postal_code"] = data["postal_code"]
+    if "address" in data and data["address"]:
+        parts = [p.strip() for p in str(data["address"]).split(",") if p.strip()]
+        if len(parts) >= 1:
+            payload["street"] = parts[0]
+        if len(parts) >= 2:
+            payload["city"] = parts[1]
+        if len(parts) >= 3:
+            payload["postal_code"] = parts[2]
+
+    if not payload:
+        raise ValueError("NO_FIELDS")
+
+    patient_repo.update_patient_profile(patient_id, **payload)
+    return get_profile(user_id)
+
+
+def get_profile(user_id):
+    row = patient_repo.get_patient_by_user_id(user_id)
+    if not row:
+        raise ValueError("PATIENT_NOT_FOUND")
+    pid, student_number, first_name, last_name, email, phone, dob, street, city, postal, *_ = (
+        row + (None,) * 12
+    )[:12]
+    address_parts = [p for p in (street, city, postal) if p]
+    dob_str = dob.strftime("%Y-%m-%d") if hasattr(dob, "strftime") else (str(dob) if dob else "")
+    return {
+        "patient_id": pid,
+        "student_number": student_number,
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email or "",
+        "phone": phone or "",
+        "date_of_birth": dob_str,
+        "address": ", ".join(address_parts) if address_parts else "",
+        "street": street or "",
+        "city": city or "",
+        "postal_code": postal or "",
+    }
 
 
 def get_dashboard(user_id):

@@ -1,249 +1,234 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Hash, Pencil, Save, X, QrCode, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { getPatientProfile, updatePatientProfile, getPatientQrCode, getApiError } from '../services/api'
+import PageHeader from '../components/ui/PageHeader'
+import PageLoading from '../components/ui/PageLoading'
 
 const PatientProfile = () => {
   const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [qrData, setQrData] = useState(null)
   const [formData, setFormData] = useState({
-    firstName: user?.first_name || 'John',
-    lastName: user?.last_name || 'Doe',
-    email: user?.email || 'john.doe@example.com',
-    phone: '071 234 5678',
-    dateOfBirth: '1990-01-01',
-    address: '123 Main Street, Johannesburg',
-    bloodType: 'O+',
-    allergies: 'None'
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    address: '',
   })
+  const [patientId, setPatientId] = useState('')
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+  useEffect(() => {
+    loadProfile()
+  }, [user])
+
+  const loadProfile = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const profile = await getPatientProfile()
+      setPatientId(profile.patient_id || profile.student_number || '')
+      setFormData({
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        dateOfBirth: profile.date_of_birth || '',
+        address: profile.address || '',
+      })
+      const qr = await getPatientQrCode()
+      setQrData(qr)
+    } catch (err) {
+      setPatientId(user?.patient_id || user?.id || '')
+      setFormData({
+        firstName: user?.first_name || '',
+        lastName: user?.last_name || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        dateOfBirth: user?.date_of_birth || '',
+        address: user?.address || '',
+      })
+      setError(getApiError(err, 'Could not load profile.'))
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // In a real app, you would call an API to update the profile
-    setIsEditing(false)
-    alert('Profile updated successfully!')
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      await updatePatientProfile(formData)
+      setSuccess('Profile saved successfully.')
+      setIsEditing(false)
+      await loadProfile()
+    } catch (err) {
+      setError(getApiError(err, 'Failed to save profile.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <PageLoading message="Loading profile..." />
   }
 
   return (
-    <div>
-      <h1 style={styles.pageTitle}>My Profile</h1>
-      
-      <div style={styles.profileCard}>
-        <div style={styles.profileHeader}>
-          <div style={styles.avatar}>
-            {formData.firstName[0]}{formData.lastName[0]}
+    <>
+      <PageHeader
+        eyebrow="Your account"
+        icon={User}
+        title="My profile"
+        subtitle="Personal details, contact information, and your clinic check-in QR code."
+      />
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="card card--elevated">
+        <div className="profile-header">
+          <div className="profile-avatar" aria-hidden="true">
+            {(formData.firstName[0] || '?').toUpperCase()}
+            {(formData.lastName[0] || '').toUpperCase()}
           </div>
           <div>
-            <h2>{formData.firstName} {formData.lastName}</h2>
-            <p style={styles.patientId}>Patient ID: #CBS-2024-001</p>
+            <h2 className="profile-name">
+              {formData.firstName} {formData.lastName}
+            </h2>
+            <p className="profile-id">
+              <Hash size={14} aria-hidden="true" />
+              Patient ID: #{patientId || '—'}
+            </p>
           </div>
-          <button 
-            style={styles.editBtn}
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </button>
+          <div className="profile-header__actions">
+            <button
+              type="button"
+              className={`btn ${isEditing ? 'btn-ghost' : 'btn-primary'}`}
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              {isEditing ? (
+                <>
+                  <X size={16} aria-hidden="true" />
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <Pencil size={16} aria-hidden="true" />
+                  Edit Profile
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={styles.formGrid}>
-            <div style={styles.formGroup}>
-              <label>First Name</label>
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="firstName">First Name</label>
               <input
+                id="firstName"
                 type="text"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label>Last Name</label>
+            <div className="form-group">
+              <label htmlFor="lastName">Last Name</label>
               <input
+                id="lastName"
                 type="text"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label>Email</label>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label>Phone</label>
+            <div className="form-group">
+              <label htmlFor="phone">Phone</label>
               <input
+                id="phone"
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label>Date of Birth</label>
+            <div className="form-group">
+              <label htmlFor="dateOfBirth">Date of Birth</label>
               <input
+                id="dateOfBirth"
                 type="date"
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label>Blood Type</label>
-              <select
-                name="bloodType"
-                value={formData.bloodType}
-                onChange={handleChange}
-                disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
-              >
-                <option>A+</option>
-                <option>A-</option>
-                <option>B+</option>
-                <option>B-</option>
-                <option>O+</option>
-                <option>O-</option>
-                <option>AB+</option>
-                <option>AB-</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label>Allergies</label>
-              <input
-                type="text"
-                name="allergies"
-                value={formData.allergies}
-                onChange={handleChange}
-                disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled)}}
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label>Address</label>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="address">Address</label>
               <textarea
+                id="address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{...styles.input, ...(isEditing ? {} : styles.disabled), minHeight: '60px'}}
+                rows={3}
               />
             </div>
           </div>
 
           {isEditing && (
-            <div style={styles.formActions}>
-              <button type="submit" style={styles.saveBtn}>
-                Save Changes
+            <div className="form-actions">
+              <button type="submit" className="btn btn-success" disabled={saving}>
+                <Save size={16} aria-hidden="true" />
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           )}
         </form>
       </div>
-    </div>
-  )
-}
 
-const styles = {
-  pageTitle: {
-    fontSize: '28px',
-    marginBottom: '20px',
-  },
-  profileCard: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '30px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  },
-  profileHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-    marginBottom: '30px',
-    flexWrap: 'wrap',
-  },
-  avatar: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    backgroundColor: '#007bff',
-    color: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '32px',
-    fontWeight: 'bold',
-  },
-  patientId: {
-    color: '#666',
-    marginTop: '5px',
-  },
-  editBtn: {
-    marginLeft: 'auto',
-    padding: '8px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '20px',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  input: {
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    marginTop: '5px',
-    fontFamily: 'inherit',
-  },
-  disabled: {
-    backgroundColor: '#f5f5f5',
-    color: '#666',
-  },
-  formActions: {
-    marginTop: '30px',
-    textAlign: 'right',
-  },
-  saveBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
+      {qrData?.qr_data && (
+        <section className="card card--elevated" style={{ marginTop: '1.5rem' }}>
+          <h2 className="section-title">
+            <QrCode size={20} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 8 }} />
+            Clinic QR Code
+          </h2>
+          <p className="page-subtitle">Show this at reception for quick check-in.</p>
+          <img
+            src={qrData.qr_data}
+            alt="Patient QR code"
+            style={{ maxWidth: 200, display: 'block', margin: '1rem auto' }}
+          />
+        </section>
+      )}
+    </>
+  )
 }
 
 export default PatientProfile

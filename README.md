@@ -132,13 +132,49 @@ python app.py
 ```bash
 cd frontend
 npm install
-npm start
+cp .env.example .env
+npm run dev
 ```
 
 | Service | URL |
 |---|---|
-| React App | `http://localhost:3000/` |
+| React App | `http://localhost:5173/` |
 | Backend API | `http://localhost:8000/api/v1/` |
+
+### 8. Verify demo readiness (examiners)
+
+After Oracle seed + `backend/.env`:
+
+```bash
+cd backend
+python scripts/reset_seed_passwords.py
+python scripts/verify_deploy_ready.py
+```
+
+With API already running, add `--http` to probe health endpoints.
+
+From repo root, start both servers:
+
+```bat
+start-dev.bat
+```
+
+Or pre-flight then start:
+
+```bat
+demo-ready.bat
+```
+
+### Demo login accounts
+
+| Portal | Username | Password | Role |
+|--------|----------|----------|------|
+| Patient | `karabo.mabena` | `Clinic@123` | PATIENT |
+| Staff | `dr.mokoena` | `Clinic@123` | DOCTOR |
+| Staff | `nurse.dlamini` | `Clinic@123` | NURSE |
+| Admin | `admin.nkosi` | `Clinic@123` | ADMIN |
+
+See [docs/DEMO_SCRIPT.md](./docs/DEMO_SCRIPT.md) for a 2–3 minute presentation walkthrough.
 
 ---
 

@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getDoctors, getTimeslots, bookAppointment } from '../services/api'
+import {
+  CalendarPlus,
+  Stethoscope,
+  Calendar,
+  Clock,
+  Video,
+  MapPin,
+  FileText,
+  Loader2,
+} from 'lucide-react'
+import { getDoctors, getTimeslots, bookAppointment, getApiError } from '../services/api'
+import PageHeader from '../components/ui/PageHeader'
+import PageLoading from '../components/ui/PageLoading'
 
 const BookAppointment = () => {
   const navigate = useNavigate()
@@ -18,39 +30,21 @@ const BookAppointment = () => {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    loadDoctors()
+    getDoctors()
+      .then(setDoctors)
+      .catch(() => setError('Failed to load doctors'))
+      .finally(() => setLoadingDoctors(false))
   }, [])
 
   useEffect(() => {
     if (selectedDoctor && selectedDate) {
-      loadTimeslots()
+      setLoadingTimeslots(true)
+      getTimeslots(selectedDoctor, selectedDate)
+        .then(setTimeslots)
+        .catch(() => setTimeslots([]))
+        .finally(() => setLoadingTimeslots(false))
     }
   }, [selectedDoctor, selectedDate])
-
-  const loadDoctors = async () => {
-    try {
-      const data = await getDoctors()
-      setDoctors(data)
-    } catch (error) {
-      console.error('Error loading doctors:', error)
-      setError('Failed to load doctors')
-    } finally {
-      setLoadingDoctors(false)
-    }
-  }
-
-  const loadTimeslots = async () => {
-    setLoadingTimeslots(true)
-    try {
-      const data = await getTimeslots(selectedDoctor, selectedDate)
-      setTimeslots(data)
-    } catch (error) {
-      console.error('Error loading timeslots:', error)
-      setTimeslots([])
-    } finally {
-      setLoadingTimeslots(false)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -64,25 +58,23 @@ const BookAppointment = () => {
       return
     }
 
-    const doctor = doctors.find(d => d.id === parseInt(selectedDoctor))
+    const doctor = doctors.find((d) => d.id === parseInt(selectedDoctor, 10))
     const appointmentData = {
-      doctor_id: parseInt(selectedDoctor),
+      doctor_id: parseInt(selectedDoctor, 10),
       doctor_name: doctor?.name || '',
       appointment_date: selectedDate,
       time_slot: selectedTime,
-      reason: reason,
-      type: appointmentType
+      reason,
+      type: appointmentType,
     }
 
     try {
       await bookAppointment(appointmentData)
       setSuccess('Appointment booked successfully!')
-      setTimeout(() => {
-        navigate('/appointments')
-      }, 2000)
-    } catch (error) {
-      console.error('Error booking appointment:', error)
-      setError('Failed to book appointment. Please try again.')
+      setTimeout(() => navigate('/appointments'), 2000)
+    } catch (err) {
+      console.error('Error booking appointment:', err)
+      setError(getApiError(err, 'Failed to book appointment. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -90,22 +82,33 @@ const BookAppointment = () => {
 
   const today = new Date().toISOString().split('T')[0]
 
+  if (loadingDoctors) {
+    return <PageLoading message="Loading doctors..." />
+  }
+
   return (
-    <div>
-      <h1 style={styles.pageTitle}>Book an Appointment</h1>
-      <p style={styles.subtitle}>Schedule your visit with our doctors</p>
+    <>
+      <PageHeader
+        eyebrow="Book a visit"
+        icon={CalendarPlus}
+        title="Book an appointment"
+        subtitle="Choose a doctor, date, and time — in-person or virtual — at the campus clinic."
+      />
 
-      {error && <div style={styles.error}>{error}</div>}
-      {success && <div style={styles.success}>{success}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.formGroup}>
-          <label>Select Doctor *</label>
+      <form onSubmit={handleSubmit} className="card card--elevated form-panel">
+        <div className="form-group">
+          <label htmlFor="doctor">
+            <Stethoscope size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
+            Select Doctor *
+          </label>
           <select
+            id="doctor"
             value={selectedDoctor}
             onChange={(e) => setSelectedDoctor(e.target.value)}
             required
-            style={styles.select}
             disabled={loadingDoctors}
           >
             <option value="">-- Select a doctor --</option>
@@ -118,25 +121,31 @@ const BookAppointment = () => {
           </select>
         </div>
 
-        <div style={styles.formGroup}>
-          <label>Select Date *</label>
+        <div className="form-group">
+          <label htmlFor="date">
+            <Calendar size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
+            Select Date *
+          </label>
           <input
+            id="date"
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             min={today}
             required
-            style={styles.input}
           />
         </div>
 
-        <div style={styles.formGroup}>
-          <label>Select Time *</label>
+        <div className="form-group">
+          <label htmlFor="time">
+            <Clock size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
+            Select Time *
+          </label>
           <select
+            id="time"
             value={selectedTime}
             onChange={(e) => setSelectedTime(e.target.value)}
             required
-            style={styles.select}
             disabled={loadingTimeslots || !selectedDoctor || !selectedDate}
           >
             <option value="">-- Select a time --</option>
@@ -144,113 +153,67 @@ const BookAppointment = () => {
               <option disabled>Loading timeslots...</option>
             ) : (
               timeslots.map((time) => (
-                <option key={time} value={time}>{time}</option>
+                <option key={time} value={time}>
+                  {time}
+                </option>
               ))
             )}
           </select>
         </div>
 
-        <div style={styles.formGroup}>
-          <label>Appointment Type *</label>
+        <div className="form-group">
+          <label htmlFor="type">Appointment Type *</label>
           <select
+            id="type"
             value={appointmentType}
             onChange={(e) => setAppointmentType(e.target.value)}
-            style={styles.select}
           >
             <option value="in-person">In-Person Visit</option>
             <option value="online">Online Consultation</option>
           </select>
+          <p className="page-subtitle" style={{ marginTop: '0.35rem', fontSize: '0.8125rem' }}>
+            {appointmentType === 'online' ? (
+              <>
+                <Video size={13} style={{ verticalAlign: 'middle' }} aria-hidden="true" /> Virtual consultation
+              </>
+            ) : (
+              <>
+                <MapPin size={13} style={{ verticalAlign: 'middle' }} aria-hidden="true" /> Visit the clinic in person
+              </>
+            )}
+          </p>
         </div>
 
-        <div style={styles.formGroup}>
-          <label>Reason for Visit</label>
+        <div className="form-group">
+          <label htmlFor="reason">
+            <FileText size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
+            Reason for Visit
+          </label>
           <textarea
+            id="reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            style={styles.textarea}
             placeholder="Please describe your symptoms or reason for visit..."
-            rows="4"
+            rows={4}
           />
         </div>
 
-        <button type="submit" style={styles.submitBtn} disabled={loading}>
-          {loading ? 'Booking...' : 'Book Appointment'}
+        <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 size={18} className="spin-icon" aria-hidden="true" />
+              Booking...
+            </>
+          ) : (
+            <>
+              <CalendarPlus size={18} aria-hidden="true" />
+              Book Appointment
+            </>
+          )}
         </button>
       </form>
-    </div>
+    </>
   )
-}
-
-const styles = {
-  pageTitle: {
-    fontSize: '28px',
-    marginBottom: '10px',
-  },
-  subtitle: {
-    color: '#666',
-    marginBottom: '30px',
-  },
-  form: {
-    backgroundColor: 'white',
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    maxWidth: '600px',
-  },
-  formGroup: {
-    marginBottom: '20px',
-  },
-  input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '16px',
-    marginTop: '5px',
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '16px',
-    marginTop: '5px',
-    backgroundColor: 'white',
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '16px',
-    marginTop: '5px',
-    fontFamily: 'inherit',
-  },
-  submitBtn: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    marginTop: '10px',
-  },
-  error: {
-    backgroundColor: '#f8d7da',
-    color: '#721c24',
-    padding: '10px',
-    borderRadius: '4px',
-    marginBottom: '20px',
-  },
-  success: {
-    backgroundColor: '#d4edda',
-    color: '#155724',
-    padding: '10px',
-    borderRadius: '4px',
-    marginBottom: '20px',
-  },
 }
 
 export default BookAppointment

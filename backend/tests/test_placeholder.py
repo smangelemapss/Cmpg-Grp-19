@@ -188,8 +188,8 @@ class TestPatientRepo:
     def test_get_dashboard_counts(self, mock_get_conn):
         import db.patient_repo as repo
 
-        # 4 COUNT queries, each fetchone call returns next value
-        conn, cur = _make_mock_conn(fetchone_returns=[(3,), (2,), (1,), (0,)])
+        # Single round-trip with four scalar subqueries
+        conn, cur = _make_mock_conn(fetchone_returns=[(3, 2, 1, 0)])
         mock_get_conn.return_value = conn
 
         upcoming, past, pending, cancelled = repo.get_dashboard_counts(5)
@@ -311,8 +311,8 @@ class TestAppointmentRepo:
         import db.appointment_repo as repo
 
         detail_row = (42, "2026-06-01", "09:00", "Dr. Nkosi")
-        # fetchone called twice: SELECT FOR UPDATE (is_available), then SELECT detail
-        conn, cur = _make_mock_conn(fetchone_returns=[(1,), detail_row])
+        # fetchone: FOR UPDATE slot, existing appt check, then SELECT detail
+        conn, cur = _make_mock_conn(fetchone_returns=[(1,), None, detail_row])
         mock_get_conn.return_value = conn
 
         result = repo.book_appointment(5, 3, 7, "Headache", "SICK", "uuid-token")
@@ -672,9 +672,10 @@ class TestQueueRepo:
 
 class TestAuthService:
 
+    @patch("db.patient_repo.get_patient_by_user_id")
     @patch("db.user_account_repo.get_user_by_id")
     @patch("db.user_account_repo.get_user_by_username")
-    def test_login_success(self, mock_get_by_username, mock_get_by_id):
+    def test_login_success(self, mock_get_by_username, mock_get_by_id, mock_patient):
         from werkzeug.security import generate_password_hash
         import services.auth_service as svc
 
@@ -684,6 +685,10 @@ class TestAuthService:
         )
         mock_get_by_id.return_value = (
             1, "john_doe", "john@nwu.ac.za", "PATIENT", "ACTIVE", 10, None
+        )
+        mock_patient.return_value = (
+            10, "48277444", "John", "Doe", "john@nwu.ac.za", "0820000000",
+            None, "Street", "City", "0000", 1, None,
         )
 
         result = svc.login("john_doe", "secret123")
@@ -729,18 +734,77 @@ class TestAuthService:
 
     @patch("db.user_account_repo.create_patient_user")
     @patch("db.patient_repo.create_patient")
+    @patch("db.patient_repo.get_patient_by_email")
+    @patch("db.patient_repo.get_patient_by_student_number")
     @patch("db.user_account_repo.get_user_by_username")
-    def test_register_success(self, mock_get_by_username, mock_create_patient, mock_create_user):
+    def test_register_success(
+        self,
+        mock_get_by_username,
+        mock_get_by_student,
+        mock_get_by_email,
+        mock_create_patient,
+        mock_create_user,
+    ):
         import services.auth_service as svc
 
         mock_get_by_username.return_value = None
+        mock_get_by_student.return_value = None
+        mock_get_by_email.return_value = None
         mock_create_patient.return_value = 5
         mock_create_user.return_value = 1
 
-        result = svc.register("john.doe", "john@nwu.ac.za", "pass123")
+        result = svc.register(
+            "john.doe", "48277444@mynwu.ac.za", "Pass1234", "48277444"
+        )
         assert result["user"]["username"] == "john.doe"
         assert result["user"]["role"] == "PATIENT"
-        assert result["user"]["email"] == "john@nwu.ac.za"
+        assert result["user"]["email"] == "48277444@mynwu.ac.za"
+        assert result["user"]["student_number"] == "48277444"
+
+    @patch("db.user_account_repo.get_user_by_username")
+    def test_register_student_number_required(self, mock_get_by_username):
+        import services.auth_service as svc
+
+        mock_get_by_username.return_value = None
+
+        with pytest.raises(ValueError, match="STUDENT_NUMBER_REQUIRED"):
+            svc.register("john.doe", "48277444@mynwu.ac.za", "Pass1234")
+
+    @patch("db.user_account_repo.get_user_by_username")
+    def test_register_invalid_student_number(self, mock_get_by_username):
+        import services.auth_service as svc
+
+        mock_get_by_username.return_value = None
+
+        with pytest.raises(ValueError, match="STUDENT_NUMBER_INVALID"):
+            svc.register("john.doe", "48277444@mynwu.ac.za", "Pass1234", "1234")
+
+    @patch("db.user_account_repo.get_user_by_username")
+    def test_register_invalid_nwu_email(self, mock_get_by_username):
+        import services.auth_service as svc
+
+        mock_get_by_username.return_value = None
+
+        with pytest.raises(ValueError, match="EMAIL_INVALID"):
+            svc.register("john.doe", "john@gmail.com", "Pass1234", "48277444")
+
+    @patch("db.user_account_repo.get_user_by_username")
+    def test_register_email_student_mismatch(self, mock_get_by_username):
+        import services.auth_service as svc
+
+        mock_get_by_username.return_value = None
+
+        with pytest.raises(ValueError, match="EMAIL_STUDENT_MISMATCH"):
+            svc.register("john.doe", "11111111@mynwu.ac.za", "Pass1234", "48277444")
+
+    @patch("db.user_account_repo.get_user_by_username")
+    def test_register_weak_password(self, mock_get_by_username):
+        import services.auth_service as svc
+
+        mock_get_by_username.return_value = None
+
+        with pytest.raises(ValueError, match="PASSWORD_WEAK"):
+            svc.register("john.doe", "48277444@mynwu.ac.za", "password", "48277444")
 
     @patch("db.user_account_repo.get_user_by_username")
     def test_register_duplicate_username(self, mock_get_by_username):
@@ -749,14 +813,19 @@ class TestAuthService:
         mock_get_by_username.return_value = (1, "john_doe", "hash", 10, None, "PATIENT", "ACTIVE")
 
         with pytest.raises(ValueError, match="USERNAME_EXISTS"):
-            svc.register("john_doe", "j@test.com", "pass")
+            svc.register("john.doe", "48277444@mynwu.ac.za", "Pass1234", "48277444")
 
+    @patch("db.patient_repo.get_patient_by_user_id")
     @patch("db.user_account_repo.get_user_by_id")
-    def test_get_current_user(self, mock_get_by_id):
+    def test_get_current_user(self, mock_get_by_id, mock_patient):
         import services.auth_service as svc
 
         mock_get_by_id.return_value = (
             1, "john_doe", "john@nwu.ac.za", "PATIENT", "ACTIVE", 10, None
+        )
+        mock_patient.return_value = (
+            10, "48277444", "John", "Doe", "john@nwu.ac.za", "0820000000",
+            None, "Street", "City", "0000", 1, None,
         )
 
         result = svc.get_current_user(1)
@@ -871,10 +940,12 @@ class TestAppointmentService:
     @patch("db.appointment_repo.book_appointment")
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
-    def test_book_appointment_success(self, mock_patient, mock_slots, mock_book):
+    @patch("db.doctor_repo.get_doctor_by_id")
+    def test_book_appointment_success(self, mock_doctor, mock_patient, mock_slots, mock_book):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "09:00", 1)]
         mock_book.return_value = (42, "2026-06-01", "09:00", "Dr. Nkosi")
 
@@ -891,10 +962,12 @@ class TestAppointmentService:
 
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
-    def test_book_appointment_no_slot_found(self, mock_patient, mock_slots):
+    @patch("db.doctor_repo.get_doctor_by_id")
+    def test_book_appointment_no_slot_found(self, mock_doctor, mock_patient, mock_slots):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "10:00", 1)]  # 09:00 not available
 
         with pytest.raises(LookupError, match="NO_SLOT_FOUND"):
@@ -909,10 +982,12 @@ class TestAppointmentService:
     @patch("db.appointment_repo.book_appointment")
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
-    def test_book_appointment_slot_conflict(self, mock_patient, mock_slots, mock_book):
+    @patch("db.doctor_repo.get_doctor_by_id")
+    def test_book_appointment_slot_conflict(self, mock_doctor, mock_patient, mock_slots, mock_book):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "09:00", 1)]
         mock_book.side_effect = ValueError("SLOT_UNAVAILABLE")
 
@@ -928,12 +1003,14 @@ class TestAppointmentService:
     @patch("db.appointment_repo.book_appointment")
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
+    @patch("db.doctor_repo.get_doctor_by_id")
     def test_book_appointment_virtual_maps_to_virtual_triage(
-        self, mock_patient, mock_slots, mock_book
+        self, mock_doctor, mock_patient, mock_slots, mock_book
     ):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "09:00", 1)]
         mock_book.return_value = (1, "2026-06-01", "09:00", "Dr. A")
 
@@ -1043,11 +1120,22 @@ class TestAuthRoutes:
     def test_register_route_success(self, mock_register, client):
         mock_register.return_value = {
             "message": "Registration successful",
-            "user": {"id": 1, "username": "alice", "email": "a@nwu.ac.za", "role": "PATIENT"},
+            "user": {
+                "id": 1,
+                "username": "alice",
+                "email": "a@nwu.ac.za",
+                "role": "PATIENT",
+                "student_number": "S12345678",
+            },
         }
         resp = client.post(
             "/api/v1/auth/register/",
-            json={"username": "alice", "email": "a@nwu.ac.za", "password": "pass123"},
+            json={
+                "username": "alice",
+                "student_number": "48277444",
+                "email": "48277444@mynwu.ac.za",
+                "password": "Pass1234",
+            },
         )
         assert resp.status_code == 201
 
@@ -1056,7 +1144,12 @@ class TestAuthRoutes:
         mock_register.side_effect = ValueError("USERNAME_EXISTS")
         resp = client.post(
             "/api/v1/auth/register/",
-            json={"username": "alice", "email": "a@nwu.ac.za", "password": "pass123"},
+            json={
+                "username": "alice",
+                "student_number": "48277444",
+                "email": "48277444@mynwu.ac.za",
+                "password": "Pass1234",
+            },
         )
         assert resp.status_code == 409
         data = resp.get_json()
@@ -1064,6 +1157,74 @@ class TestAuthRoutes:
 
     def test_register_route_missing_fields(self, client):
         resp = client.post("/api/v1/auth/register/", json={"username": "bob"})
+        assert resp.status_code == 400
+
+    def test_register_route_missing_student_number(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={"username": "bob", "email": "b@nwu.ac.za", "password": "pass123"},
+        )
+        assert resp.status_code == 400
+
+    def test_register_route_rejects_invalid_student_number(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={
+                "username": "test.user",
+                "student_number": "1234",
+                "email": "48277444@mynwu.ac.za",
+                "password": "Pass1234",
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.get_json()["code"] == "VALIDATION_ERROR"
+
+    def test_register_route_rejects_invalid_email(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={
+                "username": "test.user",
+                "student_number": "48277444",
+                "email": "bad@gmail.com",
+                "password": "Pass1234",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_register_route_rejects_email_mismatch(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={
+                "username": "test.user",
+                "student_number": "48277444",
+                "email": "11111111@mynwu.ac.za",
+                "password": "Pass1234",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_register_route_rejects_weak_password(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={
+                "username": "test.user",
+                "student_number": "48277444",
+                "email": "48277444@mynwu.ac.za",
+                "password": "password",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_register_route_rejects_username_without_dot(self, client):
+        resp = client.post(
+            "/api/v1/auth/register/",
+            json={
+                "username": "testuser",
+                "student_number": "48277444",
+                "email": "48277444@mynwu.ac.za",
+                "password": "Pass1234",
+            },
+        )
         assert resp.status_code == 400
 
     def test_me_route_no_token(self, client):
@@ -1082,3 +1243,125 @@ class TestAuthRoutes:
     def test_token_refresh_no_token(self, client):
         resp = client.post("/api/v1/auth/token/refresh/", json={})
         assert resp.status_code == 400
+
+
+# ===========================================================================
+# queue_service (authorization)
+# ===========================================================================
+
+class TestQueueService:
+
+    @patch("db.queue_repo.create_queue_entry")
+    @patch("db.queue_repo.get_queue_for_appointment")
+    @patch("db.appointment_repo.get_appointment_by_id")
+    @patch("db.patient_repo.get_patient_by_user_id")
+    def test_patient_can_check_in_own_appointment(
+        self, mock_patient, mock_appt, mock_get_queue, mock_create
+    ):
+        import services.queue_service as svc
+
+        mock_appt.return_value = (10, 5, "SCHEDULED")
+        mock_patient.return_value = (10, "48277444", "A", "B", None, None, None, None, None, None, None, None)
+        mock_get_queue.return_value = None
+        mock_create.return_value = 99
+
+        result = svc.check_in_patient(1, user_id=7, role="PATIENT")
+        assert result["queue_entry_id"] == 99
+
+    @patch("db.appointment_repo.get_appointment_by_id")
+    @patch("db.patient_repo.get_patient_by_user_id")
+    def test_patient_cannot_check_in_other_appointment(self, mock_patient, mock_appt):
+        import services.queue_service as svc
+
+        mock_appt.return_value = (10, 5, "SCHEDULED")
+        mock_patient.return_value = (99, "11111111", "A", "B", None, None, None, None, None, None, None, None)
+
+        with pytest.raises(ValueError, match="FORBIDDEN"):
+            svc.check_in_patient(1, user_id=7, role="PATIENT")
+
+    @patch("db.queue_repo.get_queue_for_appointment")
+    @patch("db.appointment_repo.get_appointment_by_id")
+    def test_staff_can_access_any_appointment(self, mock_appt, mock_get_queue):
+        import services.queue_service as svc
+
+        mock_appt.return_value = (10, 5, "SCHEDULED")
+        mock_get_queue.return_value = (1, 1, "WAITING", None, None, None, None)
+
+        result = svc.get_queue_position(1, user_id=3, role="NURSE")
+        assert result["queue_entry_id"] == 1
+
+    @patch("db.appointment_repo.get_appointment_by_id")
+    @patch("db.patient_repo.get_patient_by_user_id")
+    def test_check_in_rejects_cancelled_appointment(self, mock_patient, mock_appt):
+        import services.queue_service as svc
+
+        mock_appt.return_value = (10, 5, "CANCELLED")
+        mock_patient.return_value = (10, "48277444", "A", "B", None, None, None, None, None, None, None, None)
+
+        with pytest.raises(ValueError, match="APPOINTMENT_NOT_CHECKIN_ELIGIBLE"):
+            svc.check_in_patient(1, user_id=7, role="PATIENT")
+
+
+# ===========================================================================
+# pagination
+# ===========================================================================
+
+class TestPagination:
+
+    def test_clamps_per_page(self):
+        from utils.pagination import normalize_pagination
+
+        page, per_page = normalize_pagination(1, 9999)
+        assert per_page == 100
+
+    def test_invalid_page_defaults_to_one(self):
+        from utils.pagination import normalize_pagination
+
+        page, per_page = normalize_pagination("x", "y")
+        assert page == 1
+        assert per_page == 20
+
+
+# ===========================================================================
+# access_control
+# ===========================================================================
+
+class TestRateLimit:
+
+    def test_rate_limit_blocks_after_max(self):
+        from utils.rate_limit import _hits, rate_limit_auth
+        from flask import Flask
+
+        app = Flask(__name__)
+        _hits.clear()
+
+        @app.route("/t", methods=["POST"])
+        @rate_limit_auth
+        def stub():
+            return "ok", 200
+
+        client = app.test_client()
+        with app.test_request_context():
+            pass
+
+        for _ in range(15):
+            resp = client.post("/t")
+            assert resp.status_code == 200
+
+        resp = client.post("/t")
+        assert resp.status_code == 429
+
+
+class TestAccessControl:
+
+    def test_patient_own_appointment(self):
+        from utils.access_control import can_access_appointment
+
+        assert can_access_appointment("PATIENT", 10, 10) is True
+        assert can_access_appointment("PATIENT", 10, 99) is False
+
+    def test_staff_any_appointment(self):
+        from utils.access_control import can_access_appointment
+
+        assert can_access_appointment("DOCTOR", 10, None) is True
+        assert can_access_appointment("ADMIN", 10, None) is True

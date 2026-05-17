@@ -1,28 +1,19 @@
-"""
-Notification service.
-Business logic for notification retrieval and state management.
-All DB access goes through db/notification_repo.py.
+"""Notification service — delegates to notification_repo."""
 
-B4 (Imamelengmakutoane): implement functions here. Call repo functions,
-do NOT put SQL strings in this file.
-"""
+import db.notification_repo as notification_repo
 
 
-def get_notifications_for_user(conn, user_id):
-    """Returns list of notification dicts for the given user."""
-    raise NotImplementedError("notification_service.get_notifications_for_user not yet implemented")
+def get_notifications_for_user(user_id):
+    return notification_repo.get_notifications_for_user(user_id)
 
 
-def mark_notification_read(conn, notification_id, user_id):
-    """Marks a single notification as read. Returns True if found and updated."""
-    raise NotImplementedError("notification_service.mark_notification_read not yet implemented")
+def mark_notification_read(notification_id, user_id):
+    return notification_repo.mark_notification_read(notification_id, user_id)
 
 
-def mark_all_read(conn, user_id):
-    """Marks all notifications for user as read."""
-    raise NotImplementedError("notification_service.mark_all_read not yet implemented")
+def mark_all_read(user_id):
+    return notification_repo.mark_all_notifications_read(user_id)
 
 
-def delete_notification(conn, notification_id, user_id):
-    """Deletes a notification. Returns 403 if user does not own it."""
-    raise NotImplementedError("notification_service.delete_notification not yet implemented")
+def delete_notification(notification_id):
+    return notification_repo.delete_notification(notification_id)

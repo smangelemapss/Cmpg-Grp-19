@@ -1,4 +1,32 @@
+from datetime import date
+
 from db.oracle_connection import get_connection
+
+
+def get_patient_by_student_number(student_number):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT patient_id FROM PATIENT WHERE student_number = :1",
+        [student_number],
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row[0] if row else None
+
+
+def get_patient_by_email(email):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT patient_id FROM PATIENT WHERE email = :1",
+        [email],
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row[0] if row else None
 
 
 def get_patient_by_user_id(user_id):
@@ -25,6 +53,9 @@ def create_patient(
     student_number, first_name, last_name, email,
     contact_number, date_of_birth, street, city, postal_code
 ):
+    if isinstance(date_of_birth, str):
+        date_of_birth = date(2000, 1, 1)
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -53,51 +84,38 @@ def get_dashboard_counts(patient_id):
     """Returns (upcoming_count, past_visits_count, pending_results_count, cancelled_count)."""
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
-        SELECT COUNT(*) FROM APPOINTMENT a
-        JOIN TIMESLOT t ON a.slot_id = t.slot_id
-        WHERE a.patient_id = :1
-          AND a.status IN ('SCHEDULED', 'CONFIRMED')
-          AND t.slot_date >= TRUNC(SYSDATE)
+        SELECT
+            (SELECT COUNT(*)
+             FROM APPOINTMENT a
+             JOIN TIMESLOT t ON a.slot_id = t.slot_id
+             WHERE a.patient_id = :1
+               AND a.status IN ('SCHEDULED', 'CONFIRMED')
+               AND t.slot_date >= TRUNC(SYSDATE)),
+            (SELECT COUNT(*)
+             FROM APPOINTMENT
+             WHERE patient_id = :2
+               AND status IN ('COMPLETED', 'NO_SHOW')),
+            (SELECT COUNT(*)
+             FROM APPOINTMENT a
+             WHERE a.patient_id = :3
+               AND a.status = 'COMPLETED'
+               AND NOT EXISTS (
+                   SELECT 1 FROM MEDICAL_RECORD mr
+                   WHERE mr.appointment_id = a.appointment_id
+               )),
+            (SELECT COUNT(*)
+             FROM APPOINTMENT
+             WHERE patient_id = :4 AND status = 'CANCELLED')
+        FROM DUAL
         """,
-        [patient_id],
+        [patient_id, patient_id, patient_id, patient_id],
     )
-    upcoming = cursor.fetchone()[0]
-
-    cursor.execute(
-        """
-        SELECT COUNT(*) FROM APPOINTMENT
-        WHERE patient_id = :1
-          AND status IN ('COMPLETED', 'NO_SHOW')
-        """,
-        [patient_id],
-    )
-    past = cursor.fetchone()[0]
-
-    cursor.execute(
-        """
-        SELECT COUNT(*) FROM APPOINTMENT a
-        WHERE a.patient_id = :1
-          AND a.status = 'COMPLETED'
-          AND NOT EXISTS (
-              SELECT 1 FROM MEDICAL_RECORD mr WHERE mr.appointment_id = a.appointment_id
-          )
-        """,
-        [patient_id],
-    )
-    pending = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM APPOINTMENT WHERE patient_id = :1 AND status = 'CANCELLED'",
-        [patient_id],
-    )
-    cancelled = cursor.fetchone()[0]
-
+    row = cursor.fetchone()
     cursor.close()
     conn.close()
-    return upcoming, past, pending, cancelled
+    return row[0], row[1], row[2], row[3]
 
 
 def get_medical_records(patient_id):
@@ -264,6 +282,45 @@ def delete_emergency_contact(contact_id, patient_id):
     cursor.close()
     conn.close()
     return deleted > 0
+
+
+def update_patient_profile(patient_id, **fields):
+    """Update allowed PATIENT columns. Returns True if a row was updated."""
+    allowed = {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "email": "email",
+        "phone": "contact_number",
+        "contact_number": "contact_number",
+        "date_of_birth": "date_of_birth",
+        "street": "street",
+        "city": "city",
+        "postal_code": "postal_code",
+        "address": None,
+    }
+    sets = []
+    params = []
+    for key, col in allowed.items():
+        if key not in fields or fields[key] is None or col is None:
+            continue
+        sets.append(f"{col} = :{len(params) + 1}")
+        params.append(fields[key])
+
+    if not sets:
+        return False
+
+    params.append(patient_id)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        f"UPDATE PATIENT SET {', '.join(sets)} WHERE patient_id = :{len(params)}",
+        params,
+    )
+    updated = cursor.rowcount
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return updated > 0
 
 
 def get_qr_code_data(patient_id):

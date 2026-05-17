@@ -74,6 +74,14 @@ jobs:
           python-version: "3.11"
       - name: Verify frontend api.js matches Flask routes
         working-directory: backend
+        env:
+          ORA_USER: system
+          ORA_PASSWORD: dummy
+          ORA_HOST: localhost
+          ORA_PORT: "1521"
+          ORA_SID: XE
+          JWT_SECRET: ci-test-secret
+          FLASK_ENV: development
         run: |
           pip install -r requirements.txt -q
           python scripts/verify_api_routes.py

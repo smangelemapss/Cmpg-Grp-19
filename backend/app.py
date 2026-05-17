@@ -17,7 +17,7 @@ load_dotenv()
 
 
 def _validate_production_config():
-    if os.getenv("FLASK_ENV", "production") != "production":
+    if os.getenv("FLASK_ENV", "development") != "production":
         return
     secret = os.getenv("JWT_SECRET", "changeme-secret")
     if not secret or secret == "changeme-secret":

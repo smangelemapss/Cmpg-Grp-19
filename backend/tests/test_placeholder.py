@@ -962,10 +962,12 @@ class TestAppointmentService:
 
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
-    def test_book_appointment_no_slot_found(self, mock_patient, mock_slots):
+    @patch("db.doctor_repo.get_doctor_by_id")
+    def test_book_appointment_no_slot_found(self, mock_doctor, mock_patient, mock_slots):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "10:00", 1)]  # 09:00 not available
 
         with pytest.raises(LookupError, match="NO_SLOT_FOUND"):
@@ -980,10 +982,12 @@ class TestAppointmentService:
     @patch("db.appointment_repo.book_appointment")
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
-    def test_book_appointment_slot_conflict(self, mock_patient, mock_slots, mock_book):
+    @patch("db.doctor_repo.get_doctor_by_id")
+    def test_book_appointment_slot_conflict(self, mock_doctor, mock_patient, mock_slots, mock_book):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "09:00", 1)]
         mock_book.side_effect = ValueError("SLOT_UNAVAILABLE")
 
@@ -999,12 +1003,14 @@ class TestAppointmentService:
     @patch("db.appointment_repo.book_appointment")
     @patch("db.appointment_repo.get_available_timeslots")
     @patch("db.patient_repo.get_patient_by_user_id")
+    @patch("db.doctor_repo.get_doctor_by_id")
     def test_book_appointment_virtual_maps_to_virtual_triage(
-        self, mock_patient, mock_slots, mock_book
+        self, mock_doctor, mock_patient, mock_slots, mock_book
     ):
         import services.appointment_service as svc
 
         mock_patient.return_value = (5,) + ("x",) * 11
+        mock_doctor.return_value = (3, "Dr. Nkosi", "GP", 1)
         mock_slots.return_value = [(7, "09:00", 1)]
         mock_book.return_value = (1, "2026-06-01", "09:00", "Dr. A")
 

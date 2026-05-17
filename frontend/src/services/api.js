@@ -1,195 +1,123 @@
-// frontend/src/services/api.js
-import axiosInstance from '../api/axios/Instance';
+import axiosInstance from '../api/axios/Instance'
 
-// ==================== MOCK DATA (for development without backend) ====================
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+// Set to false when backend is ready
+export const USE_MOCK = true
 
-// Mock appointments data
+// ============ MOCK DATA ============
+
+const MOCK_DASHBOARD = {
+  upcomingCount: 2,
+  pastVisitsCount: 8,
+  pendingResultsCount: 1,
+  cancelledCount: 0
+}
+
+const MOCK_MEDICAL_RECORDS = [
+  { id: 1, date: '2025-04-10', doctor: 'Dr. Nkosi', diagnosis: 'Tension headache', department: 'General' },
+  { id: 2, date: '2025-03-15', doctor: 'Dr. Sithole', diagnosis: 'Flu', department: 'General' },
+  { id: 3, date: '2025-02-20', doctor: 'Dr. Nkosi', diagnosis: 'Annual checkup', department: 'General' }
+]
+
+const MOCK_EMERGENCY_CONTACTS = [
+  { id: 1, name: 'Thabo Dlamini', relationship: 'Father', phone: '071 234 5678', label: 'Emergency' },
+  { id: 2, name: 'Nomsa Dlamini', relationship: 'Mother', phone: '072 345 6789', label: 'Home' }
+]
+
 const MOCK_APPOINTMENTS = [
-  { id: 1, date: "2026-05-15", time: "09:00", doctor: "Dr. J. Sithole", doctor_id: 1, type: "in-person", status: "upcoming", department: "General Practice" },
-  { id: 2, date: "2026-05-15", time: "10:30", doctor: "Dr. J. Sithole", doctor_id: 1, type: "virtual", status: "upcoming", department: "General Practice" },
-  { id: 3, date: "2026-05-16", time: "11:00", doctor: "Dr. J. Sithole", doctor_id: 1, type: "in-person", status: "upcoming", department: "General Practice" },
-  { id: 4, date: "2026-05-14", time: "14:00", doctor: "Dr. J. Sithole", doctor_id: 1, type: "in-person", status: "completed", department: "General Practice" },
-];
+  { id: 1, appointment_date: '2026-05-20', time_slot: '09:00', doctor_name: 'Dr. D. Sithole', type: 'in-person', status: 'confirmed' },
+  { id: 2, appointment_date: '2026-05-22', time_slot: '14:00', doctor_name: 'Dr. Nkosi', type: 'online', status: 'pending' },
+  { id: 3, appointment_date: '2026-04-10', time_slot: '10:00', doctor_name: 'Dr. Nkosi', type: 'in-person', status: 'completed' }
+]
 
-// Mock doctors
 const MOCK_DOCTORS = [
-  { id: 1, name: "Dr. J. Sithole", specialization: "General Practitioner", available: true },
-  { id: 2, name: "Dr. M. Khumalo", specialization: "Mental Health", available: true },
-  { id: 3, name: "Dr. N. Patel", specialization: "Dentist", available: false },
-];
+  { id: 1, name: 'Dr. D. Sithole', specialization: 'General Practice', available: true },
+  { id: 2, name: 'Dr. Nkosi', specialization: 'Internal Medicine', available: true },
+  { id: 3, name: 'Dr. Khumalo', specialization: 'Pediatrics', available: false }
+]
 
-// Mock queue entries
-const MOCK_QUEUE = [
-  { id: 1, patient_name: "Thabo Dlamini", student_number: "STU001", check_in_time: "2026-05-15T08:30:00Z", status: "WAITING", priority: "URGENT", reason: "Severe headache" },
-  { id: 2, patient_name: "Nomsa Nkosi", student_number: "STU002", check_in_time: "2026-05-15T08:45:00Z", status: "WAITING", priority: "NORMAL", reason: "Chest pain" },
-  { id: 3, patient_name: "Sipho Dube", student_number: "STU003", check_in_time: "2026-05-15T09:00:00Z", status: "IN_PROGRESS", priority: "URGENT", reason: "Allergic reaction" },
-  { id: 4, patient_name: "Lerato Molefe", student_number: "STU004", check_in_time: "2026-05-15T09:15:00Z", status: "WAITING", priority: "NORMAL", reason: "Follow-up" },
-];
+const MOCK_TIMESLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00']
 
-// Mock available timeslots
-const MOCK_TIMESLOTS = [
-  { id: 1, time: "08:00", is_available: true },
-  { id: 2, time: "08:30", is_available: true },
-  { id: 3, time: "09:00", is_available: false },
-  { id: 4, time: "09:30", is_available: true },
-  { id: 5, time: "10:00", is_available: true },
-  { id: 6, time: "10:30", is_available: false },
-  { id: 7, time: "11:00", is_available: true },
-  { id: 8, time: "11:30", is_available: true },
-  { id: 9, time: "13:00", is_available: true },
-  { id: 10, time: "13:30", is_available: true },
-  { id: 11, time: "14:00", is_available: false },
-  { id: 12, time: "14:30", is_available: true },
-];
+// ============ API CALLS ============
 
-// Mock patient search results
-const MOCK_PATIENTS = [
-  { id: 1, student_number: "STU001", first_name: "Thabo", last_name: "Dlamini", email: "thabo@student.ac.za" },
-  { id: 2, student_number: "STU002", first_name: "Nomsa", last_name: "Nkosi", email: "nomsa@student.ac.za" },
-  { id: 3, student_number: "STU003", first_name: "Sipho", last_name: "Dube", email: "sipho@student.ac.za" },
-  { id: 4, student_number: "STU004", first_name: "Lerato", last_name: "Molefe", email: "lerato@student.ac.za" },
-];
+// Patient Dashboard
+export const getPatientDashboard = async () => {
+  if (USE_MOCK) return MOCK_DASHBOARD
+  const response = await axiosInstance.get('/api/v1/patient/dashboard/')
+  return response.data
+}
 
-// Mock notifications
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: "New Appointment", text: "Thabo Dlamini booked an appointment for today at 09:00", time: "2026-05-15T08:00:00Z", read: false },
-  { id: 2, title: "Lab Results", text: "Blood work results for Nomsa Nkosi are ready", time: "2026-05-14T15:30:00Z", read: false },
-  { id: 3, title: "Schedule Update", text: "Your schedule for next week has been updated", time: "2026-05-14T10:00:00Z", read: true },
-];
+// Medical Records
+export const getMedicalRecords = async () => {
+  if (USE_MOCK) return MOCK_MEDICAL_RECORDS
+  const response = await axiosInstance.get('/api/v1/medical-records/')
+  return response.data
+}
 
-// ==================== APPOINTMENTS ====================
+export const getMedicalRecordById = async (id) => {
+  if (USE_MOCK) return MOCK_MEDICAL_RECORDS.find(r => r.id === id)
+  const response = await axiosInstance.get(`/api/v1/medical-records/${id}/`)
+  return response.data
+}
 
-export const getDoctorAppointments = async () => {
-  if (USE_MOCK) return MOCK_APPOINTMENTS;
-  const response = await axiosInstance.get('/api/v1/appointments/upcoming/');
-  return response.data;
-};
+// Emergency Contacts
+export const getEmergencyContacts = async () => {
+  if (USE_MOCK) return MOCK_EMERGENCY_CONTACTS
+  const response = await axiosInstance.get('/api/v1/emergency-contacts/')
+  return response.data
+}
 
-export const getAppointmentsByDate = async (doctorId, date) => {
-  if (USE_MOCK) return MOCK_APPOINTMENTS.filter(a => a.date === date);
-  const response = await axiosInstance.get('/api/v1/appointments/', {
-    params: { doctor_id: doctorId, date }
-  });
-  return response.data;
-};
+export const createEmergencyContact = async (data) => {
+  if (USE_MOCK) return { ...data, id: Date.now() }
+  const response = await axiosInstance.post('/api/v1/emergency-contacts/', data)
+  return response.data
+}
 
-// ==================== TIMESLOTS ====================
+export const updateEmergencyContact = async (id, data) => {
+  if (USE_MOCK) return { ...data, id }
+  const response = await axiosInstance.put(`/api/v1/emergency-contacts/${id}/`, data)
+  return response.data
+}
 
-export const getAvailableTimeslots = async (doctorId, date) => {
-  if (USE_MOCK) return MOCK_TIMESLOTS;
-  const response = await axiosInstance.get('/api/v1/timeslots/', {
-    params: { doctor_id: doctorId, date }
-  });
-  return response.data;
-};
+export const deleteEmergencyContact = async (id) => {
+  if (USE_MOCK) return { success: true }
+  const response = await axiosInstance.delete(`/api/v1/emergency-contacts/${id}/`)
+  return response.data
+}
 
-export const addTimeslot = async (doctorId, date, time) => {
-  if (USE_MOCK) {
-    const newId = MOCK_TIMESLOTS.length + 1;
-    return { id: newId, time, is_available: true };
-  }
-  const response = await axiosInstance.post('/api/v1/timeslots/', {
-    doctor_id: doctorId,
-    date,
-    time
-  });
-  return response.data;
-};
+// Appointments
+export const getUpcomingAppointments = async () => {
+  if (USE_MOCK) return MOCK_APPOINTMENTS.filter(a => a.status !== 'completed')
+  const response = await axiosInstance.get('/api/v1/appointments/upcoming/')
+  return response.data
+}
 
-export const removeTimeslot = async (timeslotId) => {
-  if (USE_MOCK) return { success: true };
-  const response = await axiosInstance.delete(`/api/v1/timeslots/${timeslotId}/`);
-  return response.data;
-};
+export const getAppointmentHistory = async () => {
+  if (USE_MOCK) return MOCK_APPOINTMENTS.filter(a => a.status === 'completed')
+  const response = await axiosInstance.get('/api/v1/appointments/history/')
+  return response.data
+}
 
-// ==================== DOCTORS ====================
+export const bookAppointment = async (data) => {
+  if (USE_MOCK) return { ...data, id: Date.now(), status: 'confirmed' }
+  const response = await axiosInstance.post('/api/v1/appointments/', data)
+  return response.data
+}
 
+export const cancelAppointment = async (id, reason) => {
+  if (USE_MOCK) return { success: true }
+  const response = await axiosInstance.patch(`/api/v1/appointments/${id}/cancel/`, { cancellation_reason: reason })
+  return response.data
+}
+
+// Doctors & Timeslots
 export const getDoctors = async () => {
-  if (USE_MOCK) return MOCK_DOCTORS;
-  const response = await axiosInstance.get('/api/v1/doctors/');
-  return response.data;
-};
+  if (USE_MOCK) return MOCK_DOCTORS
+  const response = await axiosInstance.get('/api/v1/doctors/')
+  return response.data
+}
 
-export const getDoctorById = async (doctorId) => {
-  if (USE_MOCK) return MOCK_DOCTORS.find(d => d.id === doctorId);
-  const response = await axiosInstance.get(`/api/v1/doctors/${doctorId}/`);
-  return response.data;
-};
-
-// ==================== PATIENT SEARCH ====================
-
-export const searchPatient = async (query) => {
-  if (USE_MOCK) {
-    return MOCK_PATIENTS.filter(p =>
-      p.first_name.toLowerCase().includes(query.toLowerCase()) ||
-      p.last_name.toLowerCase().includes(query.toLowerCase()) ||
-      p.student_number.toLowerCase().includes(query.toLowerCase())
-    );
-  }
-  const response = await axiosInstance.get('/api/v1/patients/search/', {
-    params: { q: query }
-  });
-  return response.data;
-};
-
-// ==================== APPOINTMENT BOOKING ====================
-
-export const createAppointment = async (data) => {
-  if (USE_MOCK) {
-    const newAppointment = {
-      id: Date.now(),
-      appointment_date: data.date,
-      time: data.time_slot,
-      doctor_name: `Dr. ${data.doctor_id}`,
-      status: "confirmed",
-      qr_code_token: `QR-${Date.now()}`
-    };
-    return newAppointment;
-  }
-  const response = await axiosInstance.post('/api/v1/appointments/book/', data);
-  return response.data;
-};
-
-// ==================== QUEUE MANAGEMENT ====================
-
-export const getQueueEntries = async (doctorId) => {
-  if (USE_MOCK) return MOCK_QUEUE;
-  const response = await axiosInstance.get(`/api/v1/queue/doctor/${doctorId}/`);
-  return response.data;
-};
-
-export const updateQueueStatus = async (entryId, data) => {
-  if (USE_MOCK) return { success: true };
-  const response = await axiosInstance.patch(`/api/v1/queue/${entryId}/`, data);
-  return response.data;
-};
-
-export const callNextPatient = async (doctorId) => {
-  if (USE_MOCK) return { success: true };
-  const response = await axiosInstance.post(`/api/v1/queue/doctor/${doctorId}/call-next/`);
-  return response.data;
-};
-
-// ==================== NOTIFICATIONS ====================
-
-export const getNotifications = async () => {
-  if (USE_MOCK) return MOCK_NOTIFICATIONS;
-  const response = await axiosInstance.get('/api/v1/notifications/');
-  return response.data;
-};
-
-export const markNotificationRead = async (id) => {
-  if (USE_MOCK) return { success: true };
-  const response = await axiosInstance.patch(`/api/v1/notifications/${id}/read/`, { read: true });
-  return response.data;
-};
-
-export const getUnreadCount = async () => {
-  if (USE_MOCK) {
-    const unread = MOCK_NOTIFICATIONS.filter(n => !n.read).length;
-    return { count: unread };
-  }
-  const response = await axiosInstance.get('/api/v1/notifications/unread/');
-  return response.data;
-};
+export const getTimeslots = async (doctorId, date) => {
+  if (USE_MOCK) return MOCK_TIMESLOTS
+  const response = await axiosInstance.get('/api/v1/timeslots/', { params: { doctor_id: doctorId, date } })
+  return response.data
+}

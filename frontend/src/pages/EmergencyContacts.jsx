@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { 
+  getEmergencyContacts, 
+  createEmergencyContact, 
+  updateEmergencyContact, 
+  deleteEmergencyContact 
+} from '../services/api'
 
-const initialContacts = [
-  { id: 1, name: "Thabo Dlamini", relationship: "Father", phone: "071 234 5678", label: "Emergency" },
-  { id: 2, name: "Nomsa Dlamini", relationship: "Mother", phone: "082 987 6543", label: "Home" },
-]
-
-function EmergencyContacts() {
-  const [contacts, setContacts] = useState(initialContacts)
-  const [isAdding, setIsAdding] = useState(false)
-  const [isEditing, setIsEditing] = useState(null)
+const EmergencyContacts = () => {
+  const [contacts, setContacts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingContact, setEditingContact] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     relationship: '',
@@ -16,238 +18,342 @@ function EmergencyContacts() {
     label: 'Emergency'
   })
 
-  const handleChange = (e) => {
+  useEffect(() => {
+    loadContacts()
+  }, [])
+
+  const loadContacts = async () => {
+    try {
+      const data = await getEmergencyContacts()
+      setContacts(data)
+    } catch (error) {
+      console.error('Error loading contacts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
   }
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      relationship: '',
-      phone: '',
-      label: 'Emergency'
-    })
-    setIsAdding(false)
-    setIsEditing(null)
-  }
-
-  const handleAdd = () => {
-    if (!formData.name || !formData.relationship || !formData.phone) {
-      alert('Please fill in all fields')
-      return
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (editingContact) {
+        await updateEmergencyContact(editingContact.id, formData)
+      } else {
+        await createEmergencyContact(formData)
+      }
+      setShowForm(false)
+      setEditingContact(null)
+      setFormData({ name: '', relationship: '', phone: '', label: 'Emergency' })
+      loadContacts()
+    } catch (error) {
+      console.error('Error saving contact:', error)
     }
-    const newContact = {
-      id: Date.now(),
-      name: formData.name,
-      relationship: formData.relationship,
-      phone: formData.phone,
-      label: formData.label
-    }
-    setContacts([...contacts, newContact])
-    resetForm()
   }
 
   const handleEdit = (contact) => {
-    setIsEditing(contact.id)
+    setEditingContact(contact)
     setFormData({
       name: contact.name,
       relationship: contact.relationship,
       phone: contact.phone,
       label: contact.label || 'Emergency'
     })
+    setShowForm(true)
   }
 
-  const handleSaveEdit = () => {
-    if (!formData.name || !formData.relationship || !formData.phone) {
-      alert('Please fill in all fields')
-      return
-    }
-    setContacts(contacts.map(contact =>
-      contact.id === isEditing
-        ? {
-            ...contact,
-            name: formData.name,
-            relationship: formData.relationship,
-            phone: formData.phone,
-            label: formData.label
-          }
-        : contact
-    ))
-    resetForm()
-  }
-
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
-      setContacts(contacts.filter(c => c.id !== id))
+      try {
+        await deleteEmergencyContact(id)
+        loadContacts()
+      } catch (error) {
+        console.error('Error deleting contact:', error)
+      }
     }
+  }
+
+  const handleCancel = () => {
+    setShowForm(false)
+    setEditingContact(null)
+    setFormData({ name: '', relationship: '', phone: '', label: 'Emergency' })
+  }
+
+  if (loading) {
+    return <div>Loading emergency contacts...</div>
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ margin: 0, color: "#1a1a2e" }}>Emergency Contacts</h1>
-        {!isAdding && !isEditing && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            style={{ background: "#1b3a6b", color: "white", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
-          >
-            + Add New Contact
-          </button>
-        )}
+    <div>
+      <div style={styles.header}>
+        <h1 style={styles.pageTitle}>Emergency Contacts</h1>
+        <button style={styles.addBtn} onClick={() => setShowForm(true)}>
+          + Add Contact
+        </button>
       </div>
+      <p style={styles.subtitle}>These contacts will be notified in case of emergency</p>
 
-      {(isAdding || isEditing) && (
-        <div style={{
-          background: "white",
-          borderRadius: "12px",
-          padding: "20px",
-          marginBottom: "24px",
-          border: "1px solid #e5e4e7"
-        }}>
-          <h3 style={{ marginBottom: "16px", color: "#1a1a2e" }}>{isAdding ? "Add New Contact" : "Edit Contact"}</h3>
-          
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#1a1a2e" }}>Full Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="e.g., Thabo Dlamini"
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #e5e4e7", color: "#1a1a2e" }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#1a1a2e" }}>Relationship *</label>
-            <input
-              type="text"
-              name="relationship"
-              value={formData.relationship}
-              onChange={handleChange}
-              placeholder="e.g., Father, Mother, Sister"
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #e5e4e7", color: "#1a1a2e" }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#1a1a2e" }}>Phone Number *</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="e.g., 071 234 5678"
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #e5e4e7", color: "#1a1a2e" }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "24px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#1a1a2e" }}>Contact Label</label>
-            <select
-              name="label"
-              value={formData.label}
-              onChange={handleChange}
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #e5e4e7", color: "#1a1a2e" }}
-            >
-              <option value="Emergency">🚨 Emergency</option>
-              <option value="Home">🏠 Home</option>
-              <option value="Work">💼 Work</option>
-              <option value="Other">📱 Other</option>
-            </select>
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-            <button
-              onClick={resetForm}
-              style={{ padding: "10px 20px", background: "transparent", border: "1px solid #e5e4e7", borderRadius: "8px", cursor: "pointer", color: "#1a1a2e" }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={isAdding ? handleAdd : handleSaveEdit}
-              style={{ padding: "10px 20px", background: "#1b3a6b", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}
-            >
-              {isAdding ? "Add Contact" : "Save Changes"}
-            </button>
-          </div>
+      {contacts.length === 0 ? (
+        <div style={styles.emptyState}>
+          <p>No emergency contacts added yet.</p>
+          <button style={styles.emptyBtn} onClick={() => setShowForm(true)}>
+            Add Your First Contact
+          </button>
+        </div>
+      ) : (
+        <div style={styles.contactsList}>
+          {contacts.map((contact) => (
+            <div key={contact.id} style={styles.contactCard}>
+              <div style={styles.contactHeader}>
+                <div>
+                  <h3 style={styles.contactName}>{contact.name}</h3>
+                  <p style={styles.contactRelationship}>{contact.relationship}</p>
+                </div>
+                <div style={styles.contactBadge}>
+                  {contact.label}
+                </div>
+              </div>
+              <div style={styles.contactInfo}>
+                <p><strong>Phone:</strong> {contact.phone}</p>
+              </div>
+              <div style={styles.contactActions}>
+                <button style={styles.editBtn} onClick={() => handleEdit(contact)}>
+                  Edit
+                </button>
+                <button style={styles.deleteBtn} onClick={() => handleDelete(contact.id)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div style={{ overflowX: "auto", borderRadius: "12px", background: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f0f2f5", borderBottom: "1px solid #e5e4e7" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Name</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Relationship</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Phone</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Label</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.length === 0 ? (
-              <tr>
-                <td colSpan="5" style={{ padding: "40px", textAlign: "center", color: "#6a6a8a" }}>
-                  No emergency contacts added yet. Click "Add New Contact" to get started.
-                </td>
-              </tr>
-            ) : (
-              contacts.map(contact => (
-                <tr key={contact.id} style={{ borderBottom: "1px solid #e5e4e7" }}>
-                  <td style={{ padding: "12px 16px", fontWeight: "500", color: "#1a1a2e" }}>{contact.name}</td>
-                  <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>{contact.relationship}</td>
-                  <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>
-                    <a href={`tel:${contact.phone}`} style={{ color: "#1b3a6b", textDecoration: "none" }}>
-                      {contact.phone}
-                    </a>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "4px 12px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      background: contact.label === "Emergency" ? "rgba(198, 40, 40, 0.1)" : "rgba(27, 58, 107, 0.1)",
-                      color: contact.label === "Emergency" ? "#c62828" : "#1b3a6b"
-                    }}>
-                      {contact.label === "Emergency" ? "🚨 " : ""}{contact.label}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        onClick={() => handleEdit(contact)}
-                        style={{ padding: "6px 12px", background: "#1b3a6b", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px" }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(contact.id)}
-                        style={{ padding: "6px 12px", background: "#c62828", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px" }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ marginTop: "20px", padding: "16px", background: "rgba(27, 58, 107, 0.05)", borderRadius: "8px" }}>
-        <p style={{ margin: 0, fontSize: "14px", color: "#3a3a5a" }}>
-          💡 <strong>Tip:</strong> Add at least 2 emergency contacts. These will be visible to clinic staff in case of emergency.
-        </p>
-      </div>
+      {/* Form Modal */}
+      {showForm && (
+        <div style={styles.modalOverlay} onClick={handleCancel}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>{editingContact ? 'Edit Contact' : 'Add Emergency Contact'}</h2>
+            <form onSubmit={handleSubmit}>
+              <div style={styles.formGroup}>
+                <label>Full Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Relationship *</label>
+                <input
+                  type="text"
+                  name="relationship"
+                  value={formData.relationship}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="e.g., Father, Mother, Spouse"
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Phone Number *</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="e.g., 071 234 5678"
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Label</label>
+                <select
+                  name="label"
+                  value={formData.label}
+                  onChange={handleInputChange}
+                  style={styles.input}
+                >
+                  <option value="Emergency">Emergency</option>
+                  <option value="Home">Home</option>
+                  <option value="Work">Work</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div style={styles.formActions}>
+                <button type="button" style={styles.cancelBtn} onClick={handleCancel}>
+                  Cancel
+                </button>
+                <button type="submit" style={styles.saveBtn}>
+                  {editingContact ? 'Update' : 'Save'} Contact
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const styles = {
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+    flexWrap: 'wrap',
+  },
+  pageTitle: {
+    fontSize: '28px',
+  },
+  addBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  subtitle: {
+    color: '#666',
+    marginBottom: '30px',
+  },
+  contactsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  },
+  contactCard: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '20px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  },
+  contactHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+  },
+  contactName: {
+    fontSize: '18px',
+    marginBottom: '5px',
+  },
+  contactRelationship: {
+    color: '#666',
+    fontSize: '14px',
+  },
+  contactBadge: {
+    backgroundColor: '#dc3545',
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+  },
+  contactInfo: {
+    borderTop: '1px solid #eee',
+    paddingTop: '15px',
+    marginBottom: '15px',
+  },
+  contactActions: {
+    display: 'flex',
+    gap: '10px',
+  },
+  editBtn: {
+    padding: '6px 12px',
+    backgroundColor: '#ffc107',
+    color: '#333',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  deleteBtn: {
+    padding: '6px 12px',
+    backgroundColor: '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '60px',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+  },
+  emptyBtn: {
+    marginTop: '15px',
+    padding: '10px 20px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '30px',
+    maxWidth: '500px',
+    width: '90%',
+  },
+  formGroup: {
+    marginBottom: '15px',
+  },
+  input: {
+    width: '100%',
+    padding: '10px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    marginTop: '5px',
+  },
+  formActions: {
+    display: 'flex',
+    gap: '10px',
+    justifyContent: 'flex-end',
+    marginTop: '20px',
+  },
+  cancelBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  saveBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
 }
 
 export default EmergencyContacts

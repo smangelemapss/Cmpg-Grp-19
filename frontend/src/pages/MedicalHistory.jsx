@@ -1,118 +1,91 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getMedicalRecords, getMedicalRecordById } from '../services/api'
 
-const records = [
-  { id: 1, date: "2025-04-10", doctor: "Dr. Nkosi", diagnosis: "Transition headache", department: "General", prescription: "Rest and hydration", symptoms: "Tight band-like pressure around forehead" },
-  { id: 2, date: "2025-03-22", doctor: "Dr. Patel", diagnosis: "Mild anxiety", department: "Mental Health", prescription: "Counselling referral", symptoms: "Feeling overwhelmed, difficulty sleeping" },
-  { id: 3, date: "2025-02-05", doctor: "Dr. Nkosi", diagnosis: "Flu", department: "General", prescription: "Antiviral medication", symptoms: "Fever, cough, body aches" },
-]
-
-function MedicalHistory() {
+const MedicalHistory = () => {
+  const [records, setRecords] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selectedRecord, setSelectedRecord] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    loadRecords()
+  }, [])
+
+  const loadRecords = async () => {
+    try {
+      const data = await getMedicalRecords()
+      setRecords(data)
+    } catch (error) {
+      console.error('Error loading medical records:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewDetails = async (id) => {
+    try {
+      const record = await getMedicalRecordById(id)
+      setSelectedRecord(record)
+      setShowModal(true)
+    } catch (error) {
+      console.error('Error loading record details:', error)
+    }
+  }
+
+  if (loading) {
+    return <div>Loading medical records...</div>
+  }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1 style={{ marginBottom: "24px", color: "#1a1a2e" }}>Medical History</h1>
-      
-      <div style={{ overflowX: "auto", borderRadius: "12px", background: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f0f2f5", borderBottom: "1px solid #e5e4e7" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Date</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Doctor</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Diagnosis</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}>Department</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", color: "#1a1a2e", fontWeight: "600" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map(record => (
-              <tr key={record.id} style={{ borderBottom: "1px solid #e5e4e7" }}>
-                <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>{record.date}</td>
-                <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>{record.doctor}</td>
-                <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>{record.diagnosis}</td>
-                <td style={{ padding: "12px 16px", color: "#1a1a2e" }}>{record.department}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <button 
-                    onClick={() => setSelectedRecord(record)}
-                    style={{
-                      background: "#1b3a6b",
-                      color: "white",
-                      border: "none",
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "12px"
-                    }}
-                  >
-                    View Details
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div>
+      <h1 style={styles.pageTitle}>Medical History</h1>
+      <p style={styles.subtitle}>View your past medical records and diagnoses</p>
 
-      {/* Detail Modal */}
-      {selectedRecord && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }} onClick={() => setSelectedRecord(null)}>
-          <div style={{
-            background: "white",
-            borderRadius: "16px",
-            padding: "24px",
-            maxWidth: "500px",
-            width: "90%",
-            maxHeight: "80vh",
-            overflow: "auto"
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-              <h2 style={{ margin: 0, color: "#1a1a2e" }}>Visit Details</h2>
-              <button 
-                onClick={() => setSelectedRecord(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  color: "#6a6a8a"
-                }}
-              >
-                ✕
-              </button>
+      {records.length === 0 ? (
+        <div style={styles.emptyState}>No medical records found.</div>
+      ) : (
+        <div style={styles.recordsList}>
+          {records.map((record) => (
+            <div key={record.id} style={styles.recordCard}>
+              <div style={styles.recordHeader}>
+                <div>
+                  <h3 style={styles.recordDate}>{record.date}</h3>
+                  <p style={styles.recordDoctor}>Dr. {record.doctor}</p>
+                </div>
+                <button 
+                  style={styles.viewBtn}
+                  onClick={() => handleViewDetails(record.id)}
+                >
+                  View Details
+                </button>
+              </div>
+              <div style={styles.recordInfo}>
+                <p><strong>Diagnosis:</strong> {record.diagnosis}</p>
+                <p><strong>Department:</strong> {record.department}</p>
+              </div>
             </div>
-            
-            <div style={{ marginBottom: "16px" }}>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Date:</strong> {selectedRecord.date}</p>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Doctor:</strong> {selectedRecord.doctor}</p>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Department:</strong> {selectedRecord.department}</p>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Diagnosis:</strong> {selectedRecord.diagnosis}</p>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Symptoms:</strong> {selectedRecord.symptoms}</p>
-              <p style={{ marginBottom: "8px", color: "#1a1a2e" }}><strong>Prescription:</strong> {selectedRecord.prescription}</p>
+          ))}
+        </div>
+      )}
+
+      {/* Modal for record details */}
+      {showModal && selectedRecord && (
+        <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>Medical Record Details</h2>
+            <div style={styles.modalContent}>
+              <p><strong>Date:</strong> {selectedRecord.date}</p>
+              <p><strong>Doctor:</strong> Dr. {selectedRecord.doctor}</p>
+              <p><strong>Department:</strong> {selectedRecord.department}</p>
+              <p><strong>Diagnosis:</strong> {selectedRecord.diagnosis}</p>
+              {selectedRecord.symptoms && (
+                <p><strong>Symptoms:</strong> {selectedRecord.symptoms}</p>
+              )}
+              {selectedRecord.prescription && (
+                <p><strong>Prescription:</strong> {selectedRecord.prescription}</p>
+              )}
             </div>
-            
-            <button 
-              onClick={() => setSelectedRecord(null)}
-              style={{
-                background: "#1b3a6b",
-                color: "white",
-                border: "none",
-                padding: "10px 20px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                width: "100%"
-              }}
-            >
+            <button style={styles.closeBtn} onClick={() => setShowModal(false)}>
               Close
             </button>
           </div>
@@ -120,6 +93,92 @@ function MedicalHistory() {
       )}
     </div>
   )
+}
+
+const styles = {
+  pageTitle: {
+    fontSize: '28px',
+    marginBottom: '10px',
+  },
+  subtitle: {
+    color: '#666',
+    marginBottom: '30px',
+  },
+  recordsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  recordCard: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '20px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  },
+  recordHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '15px',
+    flexWrap: 'wrap',
+  },
+  recordDate: {
+    fontSize: '18px',
+    marginBottom: '5px',
+  },
+  recordDoctor: {
+    color: '#666',
+    fontSize: '14px',
+  },
+  recordInfo: {
+    borderTop: '1px solid #eee',
+    paddingTop: '15px',
+  },
+  viewBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '40px',
+    color: '#666',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '30px',
+    maxWidth: '500px',
+    width: '90%',
+    maxHeight: '80vh',
+    overflowY: 'auto',
+  },
+  modalContent: {
+    margin: '20px 0',
+  },
+  closeBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
 }
 
 export default MedicalHistory
